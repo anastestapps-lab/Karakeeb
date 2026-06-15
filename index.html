@@ -223,6 +223,7 @@ body{font-family:'Cairo',sans-serif;background:var(--bg);color:var(--text);min-h
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
   import { getFirestore, collection, getDocs, addDoc, updateDoc, deleteDoc, doc, onSnapshot, setDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+  import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 
   const firebaseConfig = {
     apiKey: "AIzaSyBAGZ3YZh1AnVEiwQzPdvTdyFf955ZWBRc",
@@ -233,11 +234,43 @@ body{font-family:'Cairo',sans-serif;background:var(--bg);color:var(--text);min-h
     appId: "1:272078785583:web:26ce783d13ba16d5078ada",
     measurementId: "G-7ESTQZ284W"
   };
-  const app = initializeApp(firebaseConfig);
-  const db  = getFirestore(app);
-  window._db  = db;
-  window._col = collection(db, "products");
-  window._fns = { collection, getDocs, addDoc, updateDoc, deleteDoc, doc, onSnapshot, setDoc };
+  const app      = initializeApp(firebaseConfig);
+  const db       = getFirestore(app);
+  const auth     = getAuth(app);
+  const provider = new GoogleAuthProvider();
+
+  // الإيميلات المسموح ليها بلوحة التحكم
+  const ALLOWED_EMAILS = [
+    "anastestapps@gmail.com",
+    "amirakhadr202020@gmail.com"
+  ];
+
+  window._db       = db;
+  window._col      = collection(db, "products");
+  window._fns      = { collection, getDocs, addDoc, updateDoc, deleteDoc, doc, onSnapshot, setDoc };
+  window._auth     = auth;
+  window._provider = provider;
+  window._allowedEmails = ALLOWED_EMAILS;
+
+  window._googleLogin = async () => {
+    try {
+      const result = await signInWithPopup(auth, provider);
+      const email  = result.user.email.toLowerCase();
+      if (!ALLOWED_EMAILS.includes(email)) {
+        await signOut(auth);
+        window._showLoginError("⛔ الإيميل ده مش مسموح له بالدخول");
+        return;
+      }
+      window._onLoginSuccess && window._onLoginSuccess();
+    } catch(e) {
+      window._showLoginError("❌ فشل تسجيل الدخول، حاول تاني");
+    }
+  };
+
+  window._googleLogout = async () => {
+    await signOut(auth);
+  };
+
   window._firebaseReady = true;
   window.dispatchEvent(new Event('firebaseReady'));
 </script>
@@ -386,19 +419,24 @@ body{font-family:'Cairo',sans-serif;background:var(--bg);color:var(--text);min-h
     <button class="mclose" onclick="closeModal('adminModal')">✕</button>
     <div class="cf"></div>
 
-    <!-- PASSWORD -->
+    <!-- GOOGLE LOGIN -->
     <div id="pwScreen" class="pw-screen">
       <div class="lock">🔐</div>
       <h3>لوحة التحكم</h3>
-      <p>ادخلي الكلمة السرية</p>
-      <input type="password" class="pw-input" id="pwInput" placeholder="••••" onkeydown="if(event.key==='Enter')checkPw()">
-      <button class="save-btn" onclick="checkPw()">دخول 🔓</button>
-      <p class="pw-err" id="pwErr">❌ كلمة السر غلط</p>
+      <p>ادخلي بحساب Google المسموح ليه</p>
+      <button class="save-btn" id="googleLoginBtn" onclick="doGoogleLogin()" style="background:white;color:#3D2B2F;border:2px solid #F0D8DD;display:flex;align-items:center;justify-content:center;gap:10px;margin:0 auto;">
+        <svg width="20" height="20" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.31-8.16 2.31-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
+        ادخلي بـ Google
+      </button>
+      <p class="pw-err" id="pwErr"></p>
     </div>
 
     <!-- PANEL -->
     <div id="adminPanel" style="display:none">
-      <div class="admin-title">⚙️ لوحة التحكم</div>
+      <div class="admin-title" style="justify-content:space-between">
+        <span>⚙️ لوحة التحكم</span>
+        <button onclick="doLogout()" style="background:none;border:1px solid #F0D8DD;border-radius:50px;padding:5px 12px;font-family:Cairo,sans-serif;font-size:12px;color:var(--text-light);cursor:pointer;">خروج 🚪</button>
+      </div>
       <div class="admin-tabs">
         <button class="atab active" id="t_add" onclick="aTab('add')">➕ إضافة</button>
         <button class="atab" id="t_manage" onclick="aTab('manage')">📦 المنتجات</button>
@@ -765,14 +803,25 @@ function openAdmin() {
   openModal('adminModal');
   setTimeout(()=>document.getElementById('pwInput').focus(), 350);
 }
-function checkPw() {
-  if (document.getElementById('pwInput').value === ADMIN_PW) {
+function doGoogleLogin() {
+  document.getElementById('googleLoginBtn').textContent = '⏳ جاري الدخول...';
+  document.getElementById('googleLoginBtn').disabled = true;
+  window._showLoginError = (msg) => {
+    const err = document.getElementById('pwErr');
+    err.textContent = msg;
+    err.style.display = 'block';
+    document.getElementById('googleLoginBtn').innerHTML = `<svg width="20" height="20" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.31-8.16 2.31-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg> ادخلي بـ Google`;
+    document.getElementById('googleLoginBtn').disabled = false;
+  };
+  window._onLoginSuccess = () => {
     document.getElementById('pwScreen').style.display = 'none';
     document.getElementById('adminPanel').style.display = 'block';
     resetForm(); aTab('add');
+  };
+  if (window._googleLogin) {
+    window._googleLogin();
   } else {
-    document.getElementById('pwErr').style.display = 'block';
-    document.getElementById('pwInput').value = '';
+    window.addEventListener('firebaseReady', () => window._googleLogin());
   }
 }
 function aTab(t) {
@@ -972,6 +1021,13 @@ function toast(msg) {
   const t = document.getElementById('toast');
   t.textContent = msg; t.classList.add('show');
   setTimeout(()=>t.classList.remove('show'), 2400);
+}
+
+function doLogout() {
+  if (window._googleLogout) window._googleLogout();
+  document.getElementById('pwScreen').style.display = 'block';
+  document.getElementById('adminPanel').style.display = 'none';
+  toast('👋 تم تسجيل الخروج');
 }
 
 // ============ INIT ============
