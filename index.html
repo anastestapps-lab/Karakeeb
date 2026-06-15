@@ -220,10 +220,10 @@ body{font-family:'Cairo',sans-serif;background:var(--bg);color:var(--text);min-h
 .tip-box{background:var(--gold-light);border-radius:12px;padding:12px 14px;font-size:12px;color:#7A6020;line-height:1.6;margin-bottom:14px;border:1px solid #EAD88A;}
 </style>
 <!-- Firebase -->
-<script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-  import { getFirestore, collection, getDocs, addDoc, updateDoc, deleteDoc, doc, onSnapshot, setDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
-  import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+<script>
 
   const firebaseConfig = {
     apiKey: "AIzaSyBAGZ3YZh1AnVEiwQzPdvTdyFf955ZWBRc",
@@ -234,10 +234,10 @@ body{font-family:'Cairo',sans-serif;background:var(--bg);color:var(--text);min-h
     appId: "1:272078785583:web:26ce783d13ba16d5078ada",
     measurementId: "G-7ESTQZ284W"
   };
-  const app      = initializeApp(firebaseConfig);
-  const db       = getFirestore(app);
-  const auth     = getAuth(app);
-  const provider = new GoogleAuthProvider();
+  const app      = firebase.initializeApp(firebaseConfig);
+  const db       = firebase.firestore();
+  const auth     = firebase.auth();
+  const provider = new firebase.auth.GoogleAuthProvider();
 
   // الإيميلات المسموح ليها بلوحة التحكم
   const ALLOWED_EMAILS = [
@@ -254,10 +254,10 @@ body{font-family:'Cairo',sans-serif;background:var(--bg);color:var(--text);min-h
 
   window._googleLogin = async () => {
     try {
-      const result = await signInWithPopup(auth, provider);
+      const result = await auth.signInWithPopup(provider);
       const email  = result.user.email.toLowerCase();
       if (!ALLOWED_EMAILS.includes(email)) {
-        await signOut(auth);
+        await auth.signOut();
         window._showLoginError("⛔ الإيميل ده مش مسموح له بالدخول");
         return;
       }
@@ -268,7 +268,7 @@ body{font-family:'Cairo',sans-serif;background:var(--bg);color:var(--text);min-h
   };
 
   window._googleLogout = async () => {
-    await signOut(auth);
+    await auth.signOut();
   };
 
   window._firebaseReady = true;
@@ -527,11 +527,8 @@ let curAdminTab  = 'add';
 
 // ============ FIREBASE LOAD ============
 function initFirebase() {
-  const db  = window._db;
   const col = window._col;
-  const { onSnapshot } = window._fns;
-  // مستمع حي — أي تغيير في Firestore يتحدث الموقع فوراً
-  onSnapshot(col, (snap) => {
+  col.onSnapshot((snap) => {
     products = snap.docs.map(d => ({ firestoreId: d.id, ...d.data() }));
     renderCats();
     renderProducts();
@@ -784,9 +781,8 @@ async function submitRating() {
   const ratings = p.ratings || [];
   ratings.push(pickedStar);
   const db = window._db;
-  const { doc, updateDoc } = window._fns;
   try {
-    await updateDoc(doc(db,'products', p.firestoreId), { ratings });
+    await db.collection('products').doc(p.firestoreId).update({ ratings });
     closeModal('rateModal');
     toast('🌟 شكراً على تقييمك!');
   } catch(e) {
@@ -869,19 +865,17 @@ async function saveProduct() {
   const desc  = document.getElementById('f_desc').value.trim();
   if (!name||!cat||isNaN(price)||price<0) { toast('⚠️ ادخلي الاسم والفئة والسعر'); return; }
   const db = window._db;
-  const { collection, addDoc, updateDoc, doc } = window._fns;
   const saveBtn = document.getElementById('saveBtn');
   saveBtn.textContent = '⏳ جاري الحفظ...';
   saveBtn.disabled = true;
   try {
     if (editId) {
       const p = products.find(x=>x.firestoreId===editId);
-      const ref = doc(db, 'products', editId);
-      await updateDoc(ref, { name, category:cat, price, stock, emoji, desc,
+      await db.collection('products').doc(editId).update({ name, category:cat, price, stock, emoji, desc,
         imgs: pendingImgs.length ? pendingImgs : (p ? p.imgs : []) });
       toast('✅ تم تعديل المنتج');
     } else {
-      await addDoc(collection(db,'products'), {
+      await db.collection('products').add({
         name, category:cat, price, stock, emoji, desc,
         imgs: pendingImgs, ratings: [], id: Date.now()
       });
@@ -912,9 +906,8 @@ function editProduct(id) {
 async function delProduct(id) {
   if (!confirm('تأكيدي حذف المنتج؟')) return;
   const db = window._db;
-  const { doc, deleteDoc } = window._fns;
   try {
-    await deleteDoc(doc(db, 'products', id));
+    await db.collection('products').doc(id).delete();
     toast('🗑️ اتحذف');
   } catch(e) {
     toast('❌ مش قادر يحذف، تأكدي من النت');
