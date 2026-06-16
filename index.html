@@ -252,18 +252,32 @@ body{font-family:'Cairo',sans-serif;background:var(--bg);color:var(--text);min-h
   window._provider = provider;
   window._allowedEmails = ALLOWED_EMAILS;
 
-  window._googleLogin = async () => {
-    try {
-      const result = await auth.signInWithPopup(provider);
-      const email  = result.user.email.toLowerCase();
+  // التحقق لما يرجع من Google
+  auth.getRedirectResult().then((result) => {
+    if (result && result.user) {
+      const email = result.user.email.toLowerCase();
       if (!ALLOWED_EMAILS.includes(email)) {
-        await auth.signOut();
-        window._showLoginError("⛔ الإيميل ده مش مسموح له بالدخول");
+        auth.signOut();
+        const err = document.getElementById('pwErr');
+        if (err) { err.textContent = "⛔ الإيميل ده مش مسموح له بالدخول"; err.style.display='block'; }
         return;
       }
-      window._onLoginSuccess && window._onLoginSuccess();
+      // دخول ناجح
+      document.getElementById('pwScreen').style.display = 'none';
+      document.getElementById('adminPanel').style.display = 'block';
+      if (typeof resetForm === 'function') resetForm();
+      if (typeof aTab === 'function') aTab('add');
+    }
+  }).catch((e) => {
+    const err = document.getElementById('pwErr');
+    if (err) { err.textContent = "❌ فشل تسجيل الدخول"; err.style.display='block'; }
+  });
+
+  window._googleLogin = async () => {
+    try {
+      await auth.signInWithRedirect(provider);
     } catch(e) {
-      window._showLoginError("❌ فشل تسجيل الدخول، حاول تاني");
+      window._showLoginError && window._showLoginError("❌ فشل تسجيل الدخول، حاول تاني");
     }
   };
 
