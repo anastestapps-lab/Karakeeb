@@ -209,6 +209,14 @@ body{font-family:'Cairo',sans-serif;background:var(--bg);color:var(--text);min-h
 .toast{position:fixed;bottom:28px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--text);color:white;padding:11px 22px;border-radius:50px;font-size:13px;font-weight:700;z-index:999;transition:transform .3s;white-space:nowrap;}
 .toast.show{transform:translateX(-50%) translateY(0);}
 
+/* LIGHTBOX */
+.lightbox{position:fixed;inset:0;background:rgba(0,0,0,0.92);z-index:500;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .3s;}
+.lightbox.open{opacity:1;pointer-events:all;}
+.lightbox img{max-width:95vw;max-height:90vh;object-fit:contain;border-radius:12px;transform:scale(.9);transition:transform .3s;}
+.lightbox.open img{transform:scale(1);}
+.lb-close{position:absolute;top:16px;right:16px;background:rgba(255,255,255,.15);border:none;border-radius:50%;width:42px;height:42px;font-size:22px;color:white;cursor:pointer;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px);}
+.lb-close:hover{background:rgba(255,255,255,.25);}
+
 /* PROMO COLOR PRESETS */
 .bg-rose{background:linear-gradient(135deg,#E8A4B0,#C97B8B);}
 .bg-gold{background:linear-gradient(135deg,#C9A84C,#E8C068);}
@@ -486,6 +494,12 @@ body{font-family:'Cairo',sans-serif;background:var(--bg);color:var(--text);min-h
   </div>
 </div>
 
+<!-- LIGHTBOX -->
+<div class="lightbox" id="lightbox" onclick="closeLightbox(event)">
+  <button class="lb-close" onclick="document.getElementById('lightbox').classList.remove('open')">✕</button>
+  <img id="lightboxImg" src="" alt="">
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script>
@@ -633,7 +647,9 @@ function openProduct(id) {
   // main img
   const pi = document.getElementById('pmImg');
   const firstImg = curProduct.imgs && curProduct.imgs.length ? curProduct.imgs[0] : null;
-  pi.innerHTML = firstImg ? `<img src="${firstImg}" alt="${curProduct.name}">` : `<span>${curProduct.emoji||'🛍️'}</span>`;
+  pi.innerHTML = firstImg
+    ? `<img src="${firstImg}" alt="${curProduct.name}" onclick="openLightbox('${firstImg}')" style="cursor:zoom-in;">`
+    : `<span>${curProduct.emoji||'🛍️'}</span>`;
   // thumbs row
   const tr = document.getElementById('pmImgsRow');
   if (curProduct.imgs && curProduct.imgs.length > 1) {
@@ -668,9 +684,22 @@ function openProduct(id) {
   openModal('productModal');
 }
 function switchPmImg(src, el) {
-  document.getElementById('pmImg').innerHTML = `<img src="${src}" alt="">`;
+  document.getElementById('pmImg').innerHTML = `<img src="${src}" alt="" onclick="openLightbox('${src}')" style="cursor:zoom-in;">`;
   document.querySelectorAll('.pm-img-thumb').forEach(t=>t.classList.remove('active'));
   el.classList.add('active');
+}
+
+function openLightbox(src) {
+  document.getElementById('lightboxImg').src = src;
+  document.getElementById('lightbox').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeLightbox(e) {
+  if (e.target === document.getElementById('lightbox') || e.target === document.getElementById('lightboxImg')) {
+    document.getElementById('lightbox').classList.remove('open');
+    document.body.style.overflow = '';
+  }
 }
 function chQty(d) { curQty = Math.max(1, Math.min(curQty+d, curProduct.stock)); document.getElementById('qtyNum').textContent = curQty; }
 function addToCart() {
@@ -855,15 +884,35 @@ function aTab(t) {
 
 // ADD / EDIT
 let pendingImgs = [];
-function addImgs(e) {
-  Array.from(e.target.files).forEach(file=>{
+function compressImg(file, maxW, maxH, quality) {
+  return new Promise(resolve => {
     const r = new FileReader();
     r.onload = ev => {
-      pendingImgs.push(ev.target.result);
-      renderThumbs();
+      const img = new Image();
+      img.onload = () => {
+        let w = img.width, h = img.height;
+        if (w > maxW) { h = Math.round(h * maxW / w); w = maxW; }
+        if (h > maxH) { w = Math.round(w * maxH / h); h = maxH; }
+        const canvas = document.createElement('canvas');
+        canvas.width = w; canvas.height = h;
+        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+        resolve(canvas.toDataURL('image/jpeg', quality));
+      };
+      img.src = ev.target.result;
     };
     r.readAsDataURL(file);
   });
+}
+
+async function addImgs(e) {
+  const files = Array.from(e.target.files);
+  toast('⏳ جاري ضغط الصور...');
+  for (const file of files) {
+    const compressed = await compressImg(file, 900, 900, 0.78);
+    pendingImgs.push(compressed);
+  }
+  renderThumbs();
+  toast(`✅ تم رفع ${files.length} صورة`);
 }
 function renderThumbs() {
   document.getElementById('imgThumbs').innerHTML = pendingImgs.map((src,i)=>`
