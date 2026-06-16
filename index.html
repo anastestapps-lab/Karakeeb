@@ -244,9 +244,9 @@ body{font-family:'Cairo',sans-serif;background:var(--bg);color:var(--text);min-h
     "amirakhadr202020@gmail.com"
   ];
 
-  window._db       = db;
-  window._col      = collection(db, "products");
-  window._fns      = { collection, getDocs, addDoc, updateDoc, deleteDoc, doc, onSnapshot, setDoc };
+  window._db  = db;
+  window._col = db.collection("products");
+  window._fns = null;
   window._auth     = auth;
   window._provider = provider;
   window._allowedEmails = ALLOWED_EMAILS;
