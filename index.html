@@ -52,6 +52,8 @@ body{font-family:'Cairo',sans-serif;background:var(--bg);color:var(--text);min-h
 
 /* SKELETON */
 @keyframes shimmer{0%{background-position:-600px 0}100%{background-position:600px 0}}
+@keyframes bounce{0%{transform:translateY(0) scale(1)}100%{transform:translateY(-12px) scale(1.1)}}
+@keyframes dot{0%{opacity:.3;transform:scale(.8)}100%{opacity:1;transform:scale(1.2)}}
 .skeleton{background:linear-gradient(90deg,#F5E8EA 25%,#FAF0F2 50%,#F5E8EA 75%);background-size:600px 100%;animation:shimmer 1.4s infinite linear;border-radius:10px;}
 .skel-card{background:white;border-radius:16px;overflow:hidden;border:1px solid #F5E8EA;}
 .skel-img{width:100%;aspect-ratio:1;}
@@ -234,6 +236,25 @@ body{font-family:'Cairo',sans-serif;background:var(--bg);color:var(--text);min-h
 
 /* TIPS BOX */
 .tip-box{background:var(--gold-light);border-radius:12px;padding:12px 14px;font-size:12px;color:#7A6020;line-height:1.6;margin-bottom:14px;border:1px solid #EAD88A;}
+
+/* STATS ENHANCED */
+.stat-card{background:var(--rose-light);border-radius:14px;padding:14px;text-align:center;}
+.stat-num{font-size:24px;font-weight:900;color:var(--rose-dark);}
+.stat-label{font-size:11px;color:var(--text-light);margin-top:2px;}
+.stat-card.gold{background:var(--gold-light);}
+.stat-card.gold .stat-num{color:var(--gold);}
+.stat-card.green{background:#E8F8F0;}
+.stat-card.green .stat-num{color:#1E8449;}
+.stat-card.red{background:#FDEDEC;}
+.stat-card.red .stat-num{color:#C0392B;}
+.order-item{padding:12px;background:#FFF;border-radius:12px;margin-bottom:8px;border:1px solid #F0D8DD;font-size:12px;}
+.order-status-pending{background:#FFF3CD;color:#7A6020;font-size:11px;padding:3px 8px;border-radius:50px;font-weight:700;}
+.order-status-done{background:#D5F5E3;color:#1E8449;font-size:11px;padding:3px 8px;border-radius:50px;font-weight:700;}
+.order-status-returned{background:#FDEDEC;color:#C0392B;font-size:11px;padding:3px 8px;border-radius:50px;font-weight:700;}
+.stats-actions{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;}
+.stat-action-btn{flex:1;border:none;border-radius:12px;padding:10px;font-family:Cairo,sans-serif;font-size:12px;font-weight:700;cursor:pointer;min-width:100px;}
+.btn-reset{background:#FDEDEC;color:#C0392B;}
+.btn-export{background:#E8F8F0;color:#1E8449;}
 </style>
 <!-- Firebase -->
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
@@ -301,11 +322,22 @@ body{font-family:'Cairo',sans-serif;background:var(--bg);color:var(--text);min-h
 <!-- CATEGORIES -->
 <div class="cats" id="catsBar"></div>
 
+<!-- LOADING SCREEN -->
+<div id="loadingScreen" style="position:fixed;inset:0;background:linear-gradient(160deg,#FAE8EC,#FDF7F8);z-index:300;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;transition:opacity .5s;">
+  <div style="font-size:56px;animation:bounce 1s infinite alternate;">🌸</div>
+  <div style="font-size:18px;font-weight:900;color:var(--rose-dark);">كراكيب</div>
+  <div id="loadingMsg" style="font-size:14px;color:var(--text-light);font-weight:600;">جاري تحميل المنتجات...</div>
+  <div style="display:flex;gap:6px;margin-top:4px;">
+    <div style="width:8px;height:8px;background:var(--rose);border-radius:50%;animation:dot 1.2s .0s infinite alternate;"></div>
+    <div style="width:8px;height:8px;background:var(--rose);border-radius:50%;animation:dot 1.2s .2s infinite alternate;"></div>
+    <div style="width:8px;height:8px;background:var(--rose);border-radius:50%;animation:dot 1.2s .4s infinite alternate;"></div>
+  </div>
+</div>
+
 <!-- PRODUCTS -->
 <div class="products-wrap">
   <div class="section-label">المنتجات المتاحة</div>
   <div class="grid" id="productsGrid">
-    <!-- Skeleton -->
     <div class="skel-card"><div class="skel-img skeleton"></div><div class="skel-line skeleton"></div><div class="skel-line short skeleton"></div></div>
     <div class="skel-card"><div class="skel-img skeleton"></div><div class="skel-line skeleton"></div><div class="skel-line short skeleton"></div></div>
     <div class="skel-card"><div class="skel-img skeleton"></div><div class="skel-line skeleton"></div><div class="skel-line short skeleton"></div></div>
@@ -500,7 +532,8 @@ body{font-family:'Cairo',sans-serif;background:var(--bg);color:var(--text);min-h
 
       <!-- STATS -->
       <div id="sec_stats" style="display:none">
-        <div class="stats-grid" id="statsGrid"></div>
+        <div class="stats-grid" id="statsGrid" style="margin-bottom:14px;"></div>
+        <div class="stats-actions" id="statsActions"></div>
         <div style="font-size:14px;font-weight:700;color:var(--text-light);margin-bottom:10px;">آخر الطلبات</div>
         <div class="orders-list" id="ordersList"></div>
       </div>
@@ -544,12 +577,31 @@ let curAdminTab  = 'add';
 // ============ FIREBASE LOAD ============
 function initFirebase() {
   const col = window._col;
+  const loadingMsgs = [
+    'جاري تحميل المنتجات...',
+    'بنجيبلك أحسن العروض...',
+    'لحظة صغيرة وهنكون جاهزين...',
+    'بنرتبلك كل حاجة بعناية...',
+  ];
+  let msgIdx = 0;
+  const msgInterval = setInterval(() => {
+    msgIdx = (msgIdx+1) % loadingMsgs.length;
+    const el = document.getElementById('loadingMsg');
+    if (el) el.textContent = loadingMsgs[msgIdx];
+  }, 1800);
+
   let firstLoad = true;
   col.onSnapshot((snap) => {
     products = snap.docs.map(d => ({ firestoreId: d.id, ...d.data() }));
     renderCats();
     renderProducts();
-    if (firstLoad) { firstLoad = false; showPromoIfActive(); }
+    if (firstLoad) {
+      firstLoad = false;
+      clearInterval(msgInterval);
+      const ls = document.getElementById('loadingScreen');
+      if (ls) { ls.style.opacity='0'; setTimeout(()=>ls.style.display='none', 500); }
+      showPromoIfActive();
+    }
   });
 }
 
@@ -562,14 +614,18 @@ else { window.addEventListener('firebaseReady', initFirebase); }
 
 // ============ HERO PHRASES ============
 const phrases = [
-  {t:"🌸 بيتك يستاهل الأحسن!",s:"منتجات مختارة بعناية لكل ركن في بيتك"},
-  {t:"✨ جودة عالية بسعر يريح القلب!",s:"مش محتاجة تدفعي كتير عشان بيتك يبقى جميل"},
-  {t:"🏠 بيتك بيتكلم عنك!",s:"اختاري اللي يعكس ذوقك وأناقتك"},
-  {t:"💛 كل اللي محتاجاه في مكان واحد!",s:"وفري وقتك وجهدك وادخلي على طول"},
-  {t:"🛒 الفرصة مش بتجي مرتين!",s:"اشتري دلوقتي قبل ما المخزون ينتهي"},
-  {t:"🌟 بيتك جنتك!",s:"خليه يعكس جمالك من الداخل للخارج"},
-  {t:"💝 هدية نفسك اللي بتستاهليه!",s:"لأن البيت اللي بتحبيه يخليكي أسعد"},
-  {t:"🔥 منتجات اتختارت بحب!",s:"عشان بيتك يبقى المكان الأجمل على الإطلاق"},
+  {t:"🌸 بيتك يستاهل الأحسن دايمًا!",          s:"منتجات مختارة بعناية لتلمسي كل ركن في بيتك بالجمال"},
+  {t:"✨ جودة حقيقية بسعر يريح القلب!",         s:"مش لازم تصرفي كتير عشان بيتك يبقى زي ما بتحلمي بيه"},
+  {t:"🏠 بيتك بيحكي عنك من غير ما تتكلمي!",    s:"اختاري اللي يعكس ذوقك الراقي وأناقتك الطبيعية"},
+  {t:"💛 كل اللي بيتك محتاجه في مكان واحد!",    s:"وفري وقتك وجهدك — كل حاجة على إيدك دلوقتي"},
+  {t:"🛒 المخزون محدود، والفرصة مش بتتكرر!",    s:"اشتري دلوقتي قبل ما القطعة اللي بتعجبك تخلص"},
+  {t:"🌟 بيتك جنتك على الأرض!",                s:"خليه يعكس جمالك من الداخل للخارج بكل تفصيلة صغيرة"},
+  {t:"💝 هديلك نفسك اللي بتستاهليه!",           s:"لأن البيت اللي بتحبيه بيخليكي أسعد كل يوم"},
+  {t:"🔥 منتجات اتختارت بحب واهتمام!",          s:"عشان بيتك يبقى المكان الأجمل اللي بتحبي ترجعي ليه"},
+  {t:"🎀 اللمسة الصغيرة بتعمل الفرق الكبير!",  s:"غيري شكل بيتك بمنتجات بسيطة وأنيقة بسعر يناسبك"},
+  {t:"💫 بيتك يستاهل لمستك الخاصة!",           s:"كل قطعة هنا اتختارت عشان تضيف دفا وجمال لبيتك"},
+  {t:"🌺 الأناقة مش بالغالي دايمًا!",           s:"منتجات عملية وجميلة بأسعار تريحك وتريح جيبتك"},
+  {t:"✅ جودة تثقي فيها، وسعر تبتسمي ليه!",    s:"لأن بيتك يستاهل الأفضل من غير ما تتعبي في الدوشة"},
 ];
 const ph = phrases[Math.floor(Math.random() * phrases.length)];
 document.getElementById('heroTitle').textContent = ph.t;
@@ -1073,34 +1129,144 @@ async function renderStats() {
   document.getElementById('ordersList').innerHTML = '<p style="text-align:center;color:#AAA;padding:16px">⏳ جاري التحميل...</p>';
   let fbOrders = [];
   try {
-    const snap = await window._db.collection('orders').limit(50).get();
+    const snap = await window._db.collection('orders').limit(100).get();
     fbOrders = snap.docs.map(d=>({ firestoreId: d.id, ...d.data() }));
-    // ترتيب يدوي بالتاريخ
     fbOrders.sort((a,b) => (b.timestamp||0) - (a.timestamp||0));
-  } catch(e) { console.log('orders error:', e); }
-  const totalOrders  = fbOrders.length;
-  const totalRevenue = fbOrders.reduce((s,o)=>s+(o.total||0),0);
-  const pending      = fbOrders.filter(o=>o.status==='pending').length;
+  } catch(e) {}
+
+  const doneOrders     = fbOrders.filter(o=>o.status==='done');
+  const pendingOrders  = fbOrders.filter(o=>o.status==='pending');
+  const returnedOrders = fbOrders.filter(o=>o.status==='returned');
+  const totalRevenue   = doneOrders.reduce((s,o)=>s+(o.total||0),0);
+  const returnedAmount = returnedOrders.reduce((s,o)=>s+(o.total||0),0);
+  const netRevenue     = totalRevenue - returnedAmount;
+
   document.getElementById('statsGrid').innerHTML = `
-    <div class="stat-card"><div class="stat-num">${totalOrders}</div><div class="stat-label">إجمالي الطلبات</div></div>
-    <div class="stat-card"><div class="stat-num">${totalRevenue}</div><div class="stat-label">إجمالي المبيعات ج</div></div>
-    <div class="stat-card"><div class="stat-num">${totalProducts}</div><div class="stat-label">عدد المنتجات</div></div>
-    <div class="stat-card"><div class="stat-num" style="color:#C0392B">${outOfStock}</div><div class="stat-label">منتجات نفذت</div></div>`;
+    <div class="stat-card gold">
+      <div class="stat-num">${netRevenue} ج</div>
+      <div class="stat-label">💰 صافي المبيعات</div>
+    </div>
+    <div class="stat-card green">
+      <div class="stat-num">${doneOrders.length}</div>
+      <div class="stat-label">✅ طلبات اتسلمت</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-num">${pendingOrders.length}</div>
+      <div class="stat-label">⏳ طلبات لسه</div>
+    </div>
+    <div class="stat-card red">
+      <div class="stat-num">${returnedOrders.length}</div>
+      <div class="stat-label">↩️ مرتجعات</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-num">${totalProducts}</div>
+      <div class="stat-label">📦 عدد المنتجات</div>
+    </div>
+    <div class="stat-card red">
+      <div class="stat-num">${outOfStock}</div>
+      <div class="stat-label">⛔ منتجات نفذت</div>
+    </div>`;
+
+  // أزرار الإجراءات
+  document.getElementById('statsActions').innerHTML = `
+    <button class="stat-action-btn btn-export" onclick="exportOrders()">📋 تصدير الطلبات</button>
+    <button class="stat-action-btn btn-reset" onclick="resetOrders()">🗑️ مسح سجل المبيعات</button>`;
+
   const ol = document.getElementById('ordersList');
   if (!fbOrders.length) { ol.innerHTML='<p style="text-align:center;color:#AAA;padding:16px">لسه مفيش طلبات</p>'; return; }
-  ol.innerHTML = fbOrders.map(o=>`
+
+  ol.innerHTML = fbOrders.map(o=>{
+    const statusMap = {
+      done:     '<span class="order-status-done">✅ اتسلم</span>',
+      pending:  '<span class="order-status-pending">⏳ لسه</span>',
+      returned: '<span class="order-status-returned">↩️ مرتجع</span>',
+    };
+    const statusHtml = statusMap[o.status] || statusMap.pending;
+    const itemsHtml  = (o.items||[]).map(i=>`• ${i.name} × ${i.qty} = ${i.qty*i.price} ج`).join('<br>');
+    const btnsHtml   = o.status==='pending' ? `
+      <button onclick="markOrderDone('${o.firestoreId}',${JSON.stringify(o.items||[]).replace(/"/g,"'")})" style="background:linear-gradient(135deg,#25D366,#128C7E);border:none;border-radius:8px;padding:6px 12px;font-family:Cairo,sans-serif;font-size:12px;font-weight:700;color:white;cursor:pointer;margin-left:6px;">✅ تم التسليم</button>
+      <button onclick="markOrderReturned('${o.firestoreId}',${JSON.stringify(o.items||[]).replace(/"/g,"'")})" style="background:#FDEDEC;border:none;border-radius:8px;padding:6px 12px;font-family:Cairo,sans-serif;font-size:12px;font-weight:700;color:#C0392B;cursor:pointer;">↩️ مرتجع</button>`
+    : o.status==='done' ? `
+      <button onclick="markOrderReturned('${o.firestoreId}',${JSON.stringify(o.items||[]).replace(/"/g,"'")})" style="background:#FDEDEC;border:none;border-radius:8px;padding:6px 12px;font-family:Cairo,sans-serif;font-size:12px;font-weight:700;color:#C0392B;cursor:pointer;">↩️ مرتجع</button>` : '';
+    return `
     <div class="order-item" id="order_${o.firestoreId}">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
-        <strong>📦 ${o.date} — ${o.total} ج</strong>
-        <span style="font-size:11px;padding:3px 8px;border-radius:50px;font-weight:700;background:${o.status==='done'?'#D5F5E3':'#FFF3CD'};color:${o.status==='done'?'#1E8449':'#7A6020'}">
-          ${o.status==='done'?'✅ اتباع':'⏳ لسه'}
-        </span>
+        <strong style="font-size:12px;">📦 ${o.date} — ${o.total} ج</strong>
+        ${statusHtml}
       </div>
-      ${o.items.map(i=>`• ${i.name} × ${i.qty}`).join('<br>')}
-      <div style="margin-top:8px;display:flex;gap:6px;">
-        ${o.status!=='done' ? `<button onclick="markOrderDone('${o.firestoreId}',${JSON.stringify(o.items).replace(/"/g,"'")})" style="background:linear-gradient(135deg,#25D366,#128C7E);border:none;border-radius:8px;padding:6px 12px;font-family:Cairo,sans-serif;font-size:12px;font-weight:700;color:white;cursor:pointer;">✅ تم التسليم</button>` : ''}
-      </div>
-    </div>`).join('');
+      <div style="color:var(--text-light);margin-bottom:8px;line-height:1.7">${itemsHtml}</div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px;">${btnsHtml}</div>
+    </div>`;
+  }).join('');
+}
+
+async function markOrderReturned(orderId, items) {
+  if (!confirm('تأكيدي إن الطلب ده اترجع؟')) return;
+  try {
+    await window._db.collection('orders').doc(orderId).update({ status: 'returned' });
+    // إرجاع الكمية للمخزون
+    for (const item of items) {
+      if (!item.firestoreId) continue;
+      const pDoc = await window._db.collection('products').doc(item.firestoreId).get();
+      if (pDoc.exists) {
+        const newStock = (pDoc.data().stock||0) + item.qty;
+        await window._db.collection('products').doc(item.firestoreId).update({ stock: newStock });
+      }
+    }
+    toast('↩️ تم تسجيل المرتجع وإرجاع المخزون');
+    renderStats();
+  } catch(e) { toast('❌ في مشكلة، حاولي تاني'); }
+}
+
+async function resetOrders() {
+  if (!confirm('⚠️ هيتمسح كل سجل المبيعات!
+متقدريش ترجعيه تاني.
+متأكدة؟')) return;
+  if (!confirm('تأكيد تاني — هتمسحي كل الطلبات؟')) return;
+  try {
+    const snap = await window._db.collection('orders').get();
+    const batch = window._db.batch();
+    snap.docs.forEach(d => batch.delete(d.ref));
+    await batch.commit();
+    toast('🗑️ تم مسح سجل المبيعات');
+    renderStats();
+  } catch(e) { toast('❌ في مشكلة، حاولي تاني'); }
+}
+
+function exportOrders() {
+  window._db.collection('orders').limit(100).get().then(snap => {
+    const orders = snap.docs.map(d=>d.data()).sort((a,b)=>(b.timestamp||0)-(a.timestamp||0));
+    if (!orders.length) { toast('مفيش طلبات للتصدير'); return; }
+    let txt = `تقرير مبيعات ${STORE_NAME}
+`;
+    txt += `تاريخ التصدير: ${new Date().toLocaleDateString('ar-EG')}
+`;
+    txt += '═'.repeat(30) + '
+
+';
+    const statusTxt = { done:'اتسلم', pending:'لسه', returned:'مرتجع' };
+    orders.forEach((o,i) => {
+      txt += `${i+1}. ${o.date} — ${statusTxt[o.status]||'لسه'}
+`;
+      (o.items||[]).forEach(item => { txt += `   • ${item.name} × ${item.qty} = ${item.qty*item.price} ج
+`; });
+      txt += `   الإجمالي: ${o.total} ج
+
+`;
+    });
+    const total = orders.filter(o=>o.status==='done').reduce((s,o)=>s+(o.total||0),0);
+    txt += '═'.repeat(30) + '
+';
+    txt += `صافي المبيعات: ${total} ج
+`;
+    // نسخ للكليبورد
+    navigator.clipboard.writeText(txt).then(()=>toast('📋 تم نسخ التقرير')).catch(()=>{
+      const el = document.createElement('textarea');
+      el.value = txt; document.body.appendChild(el); el.select();
+      document.execCommand('copy'); document.body.removeChild(el);
+      toast('📋 تم نسخ التقرير');
+    });
+  });
 }
 
 async function markOrderDone(orderId, items) {
