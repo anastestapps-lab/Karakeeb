@@ -329,17 +329,12 @@ body{font-family:'Cairo',sans-serif;background:var(--bg);color:var(--text);min-h
 <!-- PRODUCTS -->
 <div class="products-wrap">
   <div class="section-label">المنتجات المتاحة</div>
-  <!-- loading داخل المنتجات -->
-  <div id="productsLoading" style="text-align:center;padding:40px 20px;">
-    <div style="font-size:38px;animation:bounce 1s infinite alternate;">🌸</div>
-    <div id="loadingMsg" style="font-size:14px;color:var(--text-light);font-weight:700;margin-top:10px;">جاري تحميل المنتجات...</div>
-    <div style="display:flex;gap:6px;justify-content:center;margin-top:10px;">
-      <div style="width:7px;height:7px;background:var(--rose);border-radius:50%;animation:dot 1.2s .0s infinite alternate;"></div>
-      <div style="width:7px;height:7px;background:var(--rose);border-radius:50%;animation:dot 1.2s .2s infinite alternate;"></div>
-      <div style="width:7px;height:7px;background:var(--rose);border-radius:50%;animation:dot 1.2s .4s infinite alternate;"></div>
-    </div>
+  <div class="grid" id="productsGrid">
+    <div class="skel-card"><div class="skel-img skeleton"></div><div class="skel-line skeleton"></div><div class="skel-line short skeleton"></div></div>
+    <div class="skel-card"><div class="skel-img skeleton"></div><div class="skel-line skeleton"></div><div class="skel-line short skeleton"></div></div>
+    <div class="skel-card"><div class="skel-img skeleton"></div><div class="skel-line skeleton"></div><div class="skel-line short skeleton"></div></div>
+    <div class="skel-card"><div class="skel-img skeleton"></div><div class="skel-line skeleton"></div><div class="skel-line short skeleton"></div></div>
   </div>
-  <div class="grid" id="productsGrid" style="display:none;"></div>
   <div class="empty" id="emptyState" style="display:none">
     <div class="e-icon">🔍</div>
     <p>مش لاقية المنتج ده</p>
@@ -585,25 +580,10 @@ function initFirebase() {
   }
 
   const col = window._col;
-  const loadingMsgs = [
-    'جاري تحميل المنتجات...',
-    'بنجيبلك أحسن العروض...',
-    'لحظة صغيرة وهنكون جاهزين...',
-    'بنرتبلك كل حاجة بعناية...',
-  ];
-  let msgIdx = 0;
-  const msgInterval = setInterval(() => {
-    msgIdx = (msgIdx+1) % loadingMsgs.length;
-    const el = document.getElementById('loadingMsg');
-    if (el) el.textContent = loadingMsgs[msgIdx];
-  }, 1800);
+  const msgInterval = null;
 
   function hideLoading() {
     clearInterval(msgInterval);
-    const pl = document.getElementById('productsLoading');
-    if (pl) pl.style.display = 'none';
-    const pg = document.getElementById('productsGrid');
-    if (pg) pg.style.display = '';
   }
 
   // Timeout - لو في 7 ثواني مفيش رد من Firebase يختفي التحميل
