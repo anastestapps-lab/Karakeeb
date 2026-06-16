@@ -77,6 +77,8 @@ body{font-family:'Cairo',sans-serif;background:var(--bg);color:var(--text);min-h
 .card-footer{display:flex;align-items:center;justify-content:space-between;}
 .card-price{font-size:15px;font-weight:900;color:var(--rose-dark);}
 .card-price span{font-size:10px;color:var(--text-light);font-weight:600;}
+.old-price{font-size:11px;color:#AAA;text-decoration:line-through;font-weight:600;margin-right:4px;}
+.discount-badge{background:#FF4757;color:white;font-size:10px;font-weight:900;padding:2px 6px;border-radius:50px;margin-right:4px;}
 .add-btn{background:linear-gradient(135deg,var(--rose),var(--rose-dark));border:none;border-radius:50%;width:32px;height:32px;font-size:18px;color:white;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(201,123,139,.4);transition:transform .15s;}
 .add-btn:active{transform:scale(.88);}
 .add-btn:disabled{background:#DDD;box-shadow:none;cursor:not-allowed;}
@@ -322,27 +324,20 @@ body{font-family:'Cairo',sans-serif;background:var(--bg);color:var(--text);min-h
 <!-- CATEGORIES -->
 <div class="cats" id="catsBar"></div>
 
-<!-- LOADING SCREEN -->
-<div id="loadingScreen" style="position:fixed;inset:0;background:linear-gradient(160deg,#FAE8EC,#FDF7F8);z-index:300;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;transition:opacity .5s;">
-  <div style="font-size:56px;animation:bounce 1s infinite alternate;">🌸</div>
-  <div style="font-size:18px;font-weight:900;color:var(--rose-dark);">كراكيب</div>
-  <div id="loadingMsg" style="font-size:14px;color:var(--text-light);font-weight:600;">جاري تحميل المنتجات...</div>
-  <div style="display:flex;gap:6px;margin-top:4px;">
-    <div style="width:8px;height:8px;background:var(--rose);border-radius:50%;animation:dot 1.2s .0s infinite alternate;"></div>
-    <div style="width:8px;height:8px;background:var(--rose);border-radius:50%;animation:dot 1.2s .2s infinite alternate;"></div>
-    <div style="width:8px;height:8px;background:var(--rose);border-radius:50%;animation:dot 1.2s .4s infinite alternate;"></div>
-  </div>
-</div>
-
 <!-- PRODUCTS -->
 <div class="products-wrap">
   <div class="section-label">المنتجات المتاحة</div>
-  <div class="grid" id="productsGrid">
-    <div class="skel-card"><div class="skel-img skeleton"></div><div class="skel-line skeleton"></div><div class="skel-line short skeleton"></div></div>
-    <div class="skel-card"><div class="skel-img skeleton"></div><div class="skel-line skeleton"></div><div class="skel-line short skeleton"></div></div>
-    <div class="skel-card"><div class="skel-img skeleton"></div><div class="skel-line skeleton"></div><div class="skel-line short skeleton"></div></div>
-    <div class="skel-card"><div class="skel-img skeleton"></div><div class="skel-line skeleton"></div><div class="skel-line short skeleton"></div></div>
+  <!-- loading داخل المنتجات -->
+  <div id="productsLoading" style="text-align:center;padding:40px 20px;">
+    <div style="font-size:38px;animation:bounce 1s infinite alternate;">🌸</div>
+    <div id="loadingMsg" style="font-size:14px;color:var(--text-light);font-weight:700;margin-top:10px;">جاري تحميل المنتجات...</div>
+    <div style="display:flex;gap:6px;justify-content:center;margin-top:10px;">
+      <div style="width:7px;height:7px;background:var(--rose);border-radius:50%;animation:dot 1.2s .0s infinite alternate;"></div>
+      <div style="width:7px;height:7px;background:var(--rose);border-radius:50%;animation:dot 1.2s .2s infinite alternate;"></div>
+      <div style="width:7px;height:7px;background:var(--rose);border-radius:50%;animation:dot 1.2s .4s infinite alternate;"></div>
+    </div>
   </div>
+  <div class="grid" id="productsGrid" style="display:none;"></div>
   <div class="empty" id="emptyState" style="display:none">
     <div class="e-icon">🔍</div>
     <p>مش لاقية المنتج ده</p>
@@ -485,7 +480,8 @@ body{font-family:'Cairo',sans-serif;background:var(--bg);color:var(--text);min-h
       <div id="sec_add">
         <div class="fg"><label>اسم المنتج *</label><input type="text" id="f_name" placeholder="مثال: طاسة خلط ستانلس"></div>
         <div class="fg"><label>الفئة *</label><input type="text" id="f_cat" placeholder="مثال: مطبخ، حمام، ديكور..."></div>
-        <div class="fg"><label>السعر (جنيه) *</label><input type="number" id="f_price" placeholder="0" min="0"></div>
+        <div class="fg"><label>السعر بعد الخصم (جنيه) *</label><input type="number" id="f_price" placeholder="0" min="0"></div>
+        <div class="fg"><label>السعر الأصلي قبل الخصم (اختياري)</label><input type="number" id="f_oldprice" placeholder="اتركيه فاضي لو مفيش خصم" min="0"></div>
         <div class="fg"><label>الكمية في المخزون *</label><input type="number" id="f_stock" placeholder="10" min="0"></div>
         <div class="fg"><label>الإيموجي</label><input type="text" id="f_emoji" placeholder="🍳" maxlength="4"></div>
         <div class="fg">
@@ -592,8 +588,10 @@ function initFirebase() {
 
   function hideLoading() {
     clearInterval(msgInterval);
-    const ls = document.getElementById('loadingScreen');
-    if (ls) { ls.style.opacity='0'; setTimeout(()=>{ ls.style.display='none'; }, 500); }
+    const pl = document.getElementById('productsLoading');
+    if (pl) pl.style.display = 'none';
+    const pg = document.getElementById('productsGrid');
+    if (pg) pg.style.display = '';
   }
 
   // Timeout - لو في 7 ثواني مفيش رد من Firebase يختفي التحميل
@@ -721,7 +719,14 @@ function renderProducts() {
         <div class="card-cat">${p.category}</div>
         ${avg ? `<div class="card-stars">${stars} <span style="color:var(--text-light);font-size:10px">(${p.ratings.length})</span></div>` : ''}
         <div class="card-footer">
-          <div class="card-price">${p.price} <span>ج</span></div>
+          <div>
+            ${p.oldPrice && p.oldPrice > p.price ? `
+              <div style="display:flex;align-items:center;gap:4px;margin-bottom:2px;">
+                <span class="discount-badge">-${Math.round((1-p.price/p.oldPrice)*100)}%</span>
+                <span class="old-price">${p.oldPrice} ج</span>
+              </div>` : ''}
+            <div class="card-price">${p.price} <span>ج</span></div>
+          </div>
           <button class="add-btn" onclick="event.stopPropagation();quickAdd(${p.id})" ${outOfStock?'disabled':''}>+</button>
         </div>
       </div>
@@ -756,7 +761,13 @@ function openProduct(id) {
   document.getElementById('pmName').textContent = curProduct.name;
   document.getElementById('pmCat').textContent  = '📂 ' + curProduct.category;
   document.getElementById('pmDesc').textContent = curProduct.desc || '';
-  document.getElementById('pmPrice').innerHTML  = `${curProduct.price} <span>جنيه</span>`;
+  const discountHtml = curProduct.oldPrice && curProduct.oldPrice > curProduct.price
+    ? `<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
+        <span class="discount-badge">خصم ${Math.round((1-curProduct.price/curProduct.oldPrice)*100)}%</span>
+        <span class="old-price" style="font-size:14px;">${curProduct.oldPrice} جنيه</span>
+       </div>`
+    : '';
+  document.getElementById('pmPrice').innerHTML = discountHtml + `${curProduct.price} <span>جنيه</span>`;
   document.getElementById('qtyNum').textContent = 1;
 
   const avg = avgRating(curProduct);
@@ -1021,17 +1032,18 @@ function renderThumbs() {
 }
 function rmImg(i) { pendingImgs.splice(i,1); renderThumbs(); }
 function resetForm() {
-  ['f_name','f_cat','f_price','f_stock','f_emoji','f_desc'].forEach(id=>document.getElementById(id).value='');
+  ['f_name','f_cat','f_price','f_oldprice','f_stock','f_emoji','f_desc'].forEach(id=>document.getElementById(id).value='');
   pendingImgs=[]; renderThumbs(); editId=null;
   document.getElementById('saveBtn').textContent='💾 حفظ المنتج';
 }
 async function saveProduct() {
-  const name  = document.getElementById('f_name').value.trim();
-  const cat   = document.getElementById('f_cat').value.trim();
-  const price = parseFloat(document.getElementById('f_price').value);
-  const stock = parseInt(document.getElementById('f_stock').value) || 0;
-  const emoji = document.getElementById('f_emoji').value.trim() || '🛍️';
-  const desc  = document.getElementById('f_desc').value.trim();
+  const name     = document.getElementById('f_name').value.trim();
+  const cat      = document.getElementById('f_cat').value.trim();
+  const price    = parseFloat(document.getElementById('f_price').value);
+  const oldPrice = parseFloat(document.getElementById('f_oldprice').value) || 0;
+  const stock    = parseInt(document.getElementById('f_stock').value) || 0;
+  const emoji    = document.getElementById('f_emoji').value.trim() || '🛍️';
+  const desc     = document.getElementById('f_desc').value.trim();
   if (!name||!cat||isNaN(price)||price<0) { toast('⚠️ ادخلي الاسم والفئة والسعر'); return; }
   const db = window._db;
   const saveBtn = document.getElementById('saveBtn');
@@ -1040,7 +1052,7 @@ async function saveProduct() {
   try {
     if (editId) {
       const p = products.find(x=>x.firestoreId===editId);
-      await db.collection('products').doc(editId).update({ name, category:cat, price, stock, emoji, desc,
+      await db.collection('products').doc(editId).update({ name, category:cat, price, oldPrice, stock, emoji, desc,
         imgs: pendingImgs.length ? pendingImgs : (p ? p.imgs : []) });
       toast('✅ تم تعديل المنتج');
     } else {
@@ -1049,7 +1061,7 @@ async function saveProduct() {
         typeof item === 'object' ? item : { thumb: item, full: item }
       );
       const newDoc = await db.collection('products').add({
-        name, category:cat, price, stock, emoji, desc,
+        name, category:cat, price, oldPrice, stock, emoji, desc,
         imgs: processedImgs, ratings: [], id: Date.now()
       });
       console.log('Product added with ID:', newDoc.id);
@@ -1069,7 +1081,8 @@ function editProduct(id) {
   aTab('add'); editId=id;
   document.getElementById('f_name').value  = p.name;
   document.getElementById('f_cat').value   = p.category;
-  document.getElementById('f_price').value = p.price;
+  document.getElementById('f_price').value    = p.price;
+  document.getElementById('f_oldprice').value = p.oldPrice || '';
   document.getElementById('f_stock').value = p.stock;
   document.getElementById('f_emoji').value = p.emoji||'';
   document.getElementById('f_desc').value  = p.desc||'';
