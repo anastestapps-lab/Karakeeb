@@ -546,11 +546,6 @@ body{font-family:'Cairo',sans-serif;background:var(--bg);color:var(--text);min-h
 <div class="toast" id="toast"></div>
 
 <script>
-window.onerror = function(msg, src, line, col, err) {
-  var box = document.getElementById('debugBox');
-  if (box) { box.style.display='block'; box.textContent = 'Error: ' + msg + ' | Line: ' + line; }
-};
-
 // ============ CONFIG ============
 const ADMIN_PW   = "An@sA7md01558951801##*##";
 const WA_NUMBER  = "201229925389";
@@ -572,6 +567,21 @@ let curAdminTab  = 'add';
 
 // ============ FIREBASE LOAD ============
 function initFirebase() {
+  // عرض المنتجات المحفوظة محلياً فوراً (cache)
+  const cached = localStorage.getItem('krkb_cache');
+  if (cached) {
+    try {
+      products = JSON.parse(cached);
+      renderCats();
+      renderProducts();
+      // إخفاء loading فوراً لو في cache
+      const pl = document.getElementById('productsLoading');
+      if (pl) pl.style.display = 'none';
+      const pg = document.getElementById('productsGrid');
+      if (pg) pg.style.display = '';
+    } catch(e) {}
+  }
+
   const col = window._col;
   const loadingMsgs = [
     'جاري تحميل المنتجات...',
@@ -599,11 +609,13 @@ function initFirebase() {
     hideLoading();
     renderCats();
     renderProducts();
-  }, 7000);
+  }, 4000);
 
   let firstLoad = true;
   col.onSnapshot((snap) => {
     products = snap.docs.map(d => ({ firestoreId: d.id, ...d.data() }));
+    // حفظ في cache محلي عشان المرة الجاية تظهر فوراً
+    try { localStorage.setItem('krkb_cache', JSON.stringify(products)); } catch(e) {}
     renderCats();
     renderProducts();
     if (firstLoad) {
@@ -949,15 +961,14 @@ async function submitRating() {
 
 // ============ ADMIN ============
 function openAdmin() {
-  try {
-    document.getElementById('pwScreen').style.display = 'block';
-    document.getElementById('adminPanel').style.display = 'none';
-    document.getElementById('pwErr').style.display = 'none';
-    openModal('adminModal');
-  } catch(e) {
-    document.getElementById('debugBox').style.display = 'block';
-    document.getElementById('debugBox').textContent = 'openAdmin error: ' + e.message;
-  }
+  document.getElementById('pwScreen').style.display = 'block';
+  document.getElementById('adminPanel').style.display = 'none';
+  document.getElementById('pwErr').style.display = 'none';
+  document.getElementById('pwInput').value = '';
+  openModal('adminModal');
+  setTimeout(() => {
+    try { document.getElementById('pwInput').focus(); } catch(e) {}
+  }, 350);
 }
 async function checkPw() {
   const val = document.getElementById('pwInput').value;
