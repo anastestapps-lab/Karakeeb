@@ -726,7 +726,7 @@ function renderCart() {
 }
 function cQty(i,d) { const p=products.find(x=>x.id===cart[i].id); cart[i].qty=Math.max(1,Math.min(cart[i].qty+d,p?p.stock:99)); updCart(); renderCart(); }
 function cDel(i) { cart.splice(i,1); updCart(); renderCart(); }
-function sendOrder() {
+async function sendOrder() {
   if (!cart.length) return;
   const total = cart.reduce((s,i)=>s+i.price*i.qty,0);
   const date  = new Date().toLocaleDateString('ar-EG');
@@ -735,10 +735,15 @@ function sendOrder() {
     msg += `• ${item.name}\n  ${item.qty} × ${item.price} ج = ${item.qty*item.price} ج\n`;
   });
   msg += `━━━━━━━━━━━━━━\n💰 الإجمالي: ${total} جنيه\n\nشكراً! 🌸`;
-  // حفظ الطلب
-  orders.unshift({ date, items: cart.map(i=>({name:i.name,qty:i.qty,price:i.price})), total });
-  if (orders.length > 50) orders.pop();
-  saveOrders();
+  try {
+    await window._db.collection('orders').add({
+      date,
+      total,
+      status: 'pending',
+      timestamp: Date.now(),
+      items: cart.map(i=>({ firestoreId: i.firestoreId||'', name:i.name, qty:i.qty, price:i.price }))
+    });
+  } catch(e) {}
   window.open(`https://wa.me/${WA_NUMBER}?text=${encodeURIComponent(msg)}`, '_blank');
 }
 
