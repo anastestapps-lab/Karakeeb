@@ -49,6 +49,14 @@ body{font-family:'Cairo',sans-serif;background:var(--bg);color:var(--text);min-h
 .products-wrap{max-width:900px;margin:20px auto;padding:0 16px;}
 .section-label{font-size:14px;font-weight:700;color:var(--text-light);margin-bottom:14px;display:flex;align-items:center;gap:8px;}
 .section-label::after{content:'';flex:1;height:1px;background:#F0D8DD;}
+
+/* SKELETON */
+@keyframes shimmer{0%{background-position:-600px 0}100%{background-position:600px 0}}
+.skeleton{background:linear-gradient(90deg,#F5E8EA 25%,#FAF0F2 50%,#F5E8EA 75%);background-size:600px 100%;animation:shimmer 1.4s infinite linear;border-radius:10px;}
+.skel-card{background:white;border-radius:16px;overflow:hidden;border:1px solid #F5E8EA;}
+.skel-img{width:100%;aspect-ratio:1;}
+.skel-line{height:13px;margin:10px 12px 6px;}
+.skel-line.short{width:60%;height:11px;margin:0 12px 12px;}
 .grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;}
 @media(min-width:560px){.grid{grid-template-columns:repeat(3,1fr);}}
 @media(min-width:750px){.grid{grid-template-columns:repeat(4,1fr);}}
@@ -296,7 +304,13 @@ body{font-family:'Cairo',sans-serif;background:var(--bg);color:var(--text);min-h
 <!-- PRODUCTS -->
 <div class="products-wrap">
   <div class="section-label">المنتجات المتاحة</div>
-  <div class="grid" id="productsGrid"></div>
+  <div class="grid" id="productsGrid">
+    <!-- Skeleton -->
+    <div class="skel-card"><div class="skel-img skeleton"></div><div class="skel-line skeleton"></div><div class="skel-line short skeleton"></div></div>
+    <div class="skel-card"><div class="skel-img skeleton"></div><div class="skel-line skeleton"></div><div class="skel-line short skeleton"></div></div>
+    <div class="skel-card"><div class="skel-img skeleton"></div><div class="skel-line skeleton"></div><div class="skel-line short skeleton"></div></div>
+    <div class="skel-card"><div class="skel-img skeleton"></div><div class="skel-line skeleton"></div><div class="skel-line short skeleton"></div></div>
+  </div>
   <div class="empty" id="emptyState" style="display:none">
     <div class="e-icon">🔍</div>
     <p>مش لاقية المنتج ده</p>
@@ -615,8 +629,11 @@ function renderProducts() {
     const stars = avg ? ('★'.repeat(Math.round(avg)) + '☆'.repeat(5-Math.round(avg))) : '';
     const outOfStock = p.stock === 0;
     const lowStock = p.stock > 0 && p.stock <= 3;
-    const imgHtml = p.imgs && p.imgs.length
-      ? `<img src="${p.imgs[0]}" alt="${p.name}">`
+    const firstImg = p.imgs && p.imgs.length
+      ? (typeof p.imgs[0] === 'object' ? p.imgs[0].thumb : p.imgs[0])
+      : null;
+    const imgHtml = firstImg
+      ? `<img src="${firstImg}" alt="${p.name}" loading="lazy" decoding="async">`
       : `<span>${p.emoji||'🛍️'}</span>`;
     return `
     <div class="card" onclick="openProduct(${p.id})">
@@ -646,16 +663,20 @@ function openProduct(id) {
   const out = curProduct.stock === 0;
   // main img
   const pi = document.getElementById('pmImg');
-  const firstImg = curProduct.imgs && curProduct.imgs.length ? curProduct.imgs[0] : null;
+  const rawImgs = curProduct.imgs || [];
+  const getThumb = img => typeof img === 'object' ? img.thumb : img;
+  const getFull  = img => typeof img === 'object' ? img.full  : img;
+  const firstImg = rawImgs.length ? getFull(rawImgs[0]) : null;
   pi.innerHTML = firstImg
     ? `<img src="${firstImg}" alt="${curProduct.name}" onclick="openLightbox('${firstImg}')" style="cursor:zoom-in;">`
     : `<span>${curProduct.emoji||'🛍️'}</span>`;
   // thumbs row
   const tr = document.getElementById('pmImgsRow');
-  if (curProduct.imgs && curProduct.imgs.length > 1) {
-    tr.innerHTML = curProduct.imgs.map((img,i) =>
-      `<img class="pm-img-thumb ${i===0?'active':''}" src="${img}" onclick="switchPmImg('${img}',this)">`
-    ).join('');
+  if (rawImgs.length > 1) {
+    tr.innerHTML = rawImgs.map((img,i) => {
+      const t = getThumb(img), f = getFull(img);
+      return `<img class="pm-img-thumb ${i===0?'active':''}" src="${t}" onclick="switchPmImg('${f}',this)">`;
+    }).join('');
   } else { tr.innerHTML=''; }
 
   document.getElementById('pmName').textContent = curProduct.name;
@@ -908,16 +929,19 @@ async function addImgs(e) {
   const files = Array.from(e.target.files);
   toast('⏳ جاري ضغط الصور...');
   for (const file of files) {
-    const compressed = await compressImg(file, 900, 900, 0.78);
-    pendingImgs.push(compressed);
+    // نسخة صغيرة للعرض السريع في الكروت
+    const thumb = await compressImg(file, 300, 300, 0.60);
+    // نسخة أكبر للـ modal والـ lightbox
+    const full  = await compressImg(file, 700, 700, 0.72);
+    pendingImgs.push({ thumb, full });
   }
   renderThumbs();
   toast(`✅ تم رفع ${files.length} صورة`);
 }
 function renderThumbs() {
-  document.getElementById('imgThumbs').innerHTML = pendingImgs.map((src,i)=>`
+  document.getElementById('imgThumbs').innerHTML = pendingImgs.map((item,i)=>`
     <div class="img-thumb-wrap">
-      <img src="${src}">
+      <img src="${typeof item === 'object' ? item.thumb : item}">
       <button class="img-rm" onclick="rmImg(${i})">✕</button>
     </div>`).join('');
 }
@@ -946,9 +970,13 @@ async function saveProduct() {
         imgs: pendingImgs.length ? pendingImgs : (p ? p.imgs : []) });
       toast('✅ تم تعديل المنتج');
     } else {
+      // تجهيز الصور: thumb للعرض السريع، full للـ modal
+      const processedImgs = pendingImgs.map(item =>
+        typeof item === 'object' ? item : { thumb: item, full: item }
+      );
       const newDoc = await db.collection('products').add({
         name, category:cat, price, stock, emoji, desc,
-        imgs: pendingImgs, ratings: [], id: Date.now()
+        imgs: processedImgs, ratings: [], id: Date.now()
       });
       console.log('Product added with ID:', newDoc.id);
       toast('✅ تم إضافة المنتج وحفظه في قاعدة البيانات');
@@ -971,7 +999,9 @@ function editProduct(id) {
   document.getElementById('f_stock').value = p.stock;
   document.getElementById('f_emoji').value = p.emoji||'';
   document.getElementById('f_desc').value  = p.desc||'';
-  pendingImgs = p.imgs ? [...p.imgs] : [];
+  pendingImgs = p.imgs ? p.imgs.map(img =>
+    typeof img === 'object' ? img : { thumb: img, full: img }
+  ) : [];
   renderThumbs();
   document.getElementById('saveBtn').textContent='✏️ تعديل المنتج';
 }
@@ -990,7 +1020,7 @@ function renderAdminList() {
   if (!products.length) { el.innerHTML='<p style="text-align:center;color:#AAA;padding:20px">مفيش منتجات</p>'; return; }
   el.innerHTML = products.map(p=>`
     <div class="admin-pi">
-      <div class="api-img">${p.imgs&&p.imgs.length?`<img src="${p.imgs[0]}">`:(p.emoji||'🛍️')}</div>
+      <div class="api-img">${p.imgs&&p.imgs.length?`<img src="${typeof p.imgs[0]=='object'?p.imgs[0].thumb:p.imgs[0]}">`:(p.emoji||'🛍️')}</div>
       <div class="api-info">
         <strong>${p.name}</strong>
         <span>${p.category} • ${p.price} ج</span>
