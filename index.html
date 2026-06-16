@@ -590,6 +590,19 @@ function initFirebase() {
     if (el) el.textContent = loadingMsgs[msgIdx];
   }, 1800);
 
+  function hideLoading() {
+    clearInterval(msgInterval);
+    const ls = document.getElementById('loadingScreen');
+    if (ls) { ls.style.opacity='0'; setTimeout(()=>{ ls.style.display='none'; }, 500); }
+  }
+
+  // Timeout - لو في 7 ثواني مفيش رد من Firebase يختفي التحميل
+  const loadingTimeout = setTimeout(() => {
+    hideLoading();
+    renderCats();
+    renderProducts();
+  }, 7000);
+
   let firstLoad = true;
   col.onSnapshot((snap) => {
     products = snap.docs.map(d => ({ firestoreId: d.id, ...d.data() }));
@@ -597,11 +610,16 @@ function initFirebase() {
     renderProducts();
     if (firstLoad) {
       firstLoad = false;
-      clearInterval(msgInterval);
-      const ls = document.getElementById('loadingScreen');
-      if (ls) { ls.style.opacity='0'; setTimeout(()=>ls.style.display='none', 500); }
+      clearTimeout(loadingTimeout);
+      hideLoading();
       showPromoIfActive();
     }
+  }, (error) => {
+    // لو Firebase فشل خالص
+    clearTimeout(loadingTimeout);
+    hideLoading();
+    renderCats();
+    renderProducts();
   });
 }
 
