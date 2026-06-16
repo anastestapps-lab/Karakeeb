@@ -233,56 +233,10 @@ body{font-family:'Cairo',sans-serif;background:var(--bg);color:var(--text);min-h
     appId: "1:272078785583:web:26ce783d13ba16d5078ada",
     measurementId: "G-7ESTQZ284W"
   };
-  const app      = firebase.initializeApp(firebaseConfig);
-  const db       = firebase.firestore();
-  const auth     = firebase.auth();
-  const provider = new firebase.auth.GoogleAuthProvider();
-
-  // الإيميلات المسموح ليها بلوحة التحكم
-  const ALLOWED_EMAILS = [
-    "anastestapps@gmail.com",
-    "amirakhadr202020@gmail.com"
-  ];
-
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.firestore();
   window._db  = db;
   window._col = db.collection("products");
-  window._fns = null;
-  window._auth     = auth;
-  window._provider = provider;
-  window._allowedEmails = ALLOWED_EMAILS;
-
-  // التحقق لما يرجع من Google
-  auth.getRedirectResult().then((result) => {
-    if (result && result.user) {
-      const email = result.user.email.toLowerCase();
-      if (!ALLOWED_EMAILS.includes(email)) {
-        auth.signOut();
-        const err = document.getElementById('pwErr');
-        if (err) { err.textContent = "⛔ الإيميل ده مش مسموح له بالدخول"; err.style.display='block'; }
-        return;
-      }
-      // دخول ناجح
-      document.getElementById('pwScreen').style.display = 'none';
-      document.getElementById('adminPanel').style.display = 'block';
-      if (typeof resetForm === 'function') resetForm();
-      if (typeof aTab === 'function') aTab('add');
-    }
-  }).catch((e) => {
-    const err = document.getElementById('pwErr');
-    if (err) { err.textContent = "❌ فشل تسجيل الدخول"; err.style.display='block'; }
-  });
-
-  window._googleLogin = async () => {
-    try {
-      await auth.signInWithRedirect(provider);
-    } catch(e) {
-      window._showLoginError && window._showLoginError("❌ فشل تسجيل الدخول، حاول تاني");
-    }
-  };
-
-  window._googleLogout = async () => {
-    await auth.signOut();
-  };
 
   window._firebaseReady = true;
   window.dispatchEvent(new Event('firebaseReady'));
