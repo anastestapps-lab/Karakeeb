@@ -490,15 +490,39 @@ document.getElementById('heroTitle').textContent=ph.t;
 document.getElementById('heroSub').textContent=ph.s;
 
 // FIREBASE LOAD
+// تحميل فوري من cache
 const cached=localStorage.getItem('krkb_cache');
-if(cached){try{products=JSON.parse(cached);renderCats();renderProducts();}catch(e){}}
+if(cached){
+  try{
+    products=JSON.parse(cached);
+    renderCats();
+    renderProducts();
+    updateCatSelect();
+  }catch(e){}
+}
+
+// مستمع Firebase في الخلفية
+// fallback لو Firebase اتأخر
+const fbTimeout = setTimeout(()=>{
+  if(!window._fbLoaded){
+    renderCats();
+    renderProducts();
+    updateCatSelect();
+  }
+}, 5000);
 
 db.collection('products').onSnapshot(snap=>{
+  window._fbLoaded = true;
+  clearTimeout(fbTimeout);
   products=snap.docs.map(d=>({firestoreId:d.id,...d.data()}));
   try{localStorage.setItem('krkb_cache',JSON.stringify(products));}catch(e){}
   renderCats();renderProducts();updateCatSelect();
   if(!window._promoShown){window._promoShown=true;showPromoIfActive();}
-},err=>{console.log('Firebase error:',err);});
+},err=>{
+  clearTimeout(fbTimeout);
+  console.log('Firebase error:',err);
+  renderCats();renderProducts();
+});
 
 // HELPERS
 function avgRating(p){if(!p.ratings||!p.ratings.length)return 0;return p.ratings.reduce((a,b)=>a+b,0)/p.ratings.length;}
@@ -612,7 +636,17 @@ function pickStar(n){pickedStar=n;document.querySelectorAll('.star-pick').forEac
 async function submitRating(){if(!pickedStar){toast('⭐ اختاري عدد النجوم الأول!');return;}const p=products.find(x=>x.firestoreId===curProduct.firestoreId);if(!p)return;const ratings=[...(p.ratings||[]),pickedStar];try{await db.collection('products').doc(p.firestoreId).update({ratings});closeModal('rateModal');toast('🌟 شكراً على تقييمك!');}catch(e){toast('❌ في مشكلة');}}
 
 // ADMIN
-function openAdmin(){document.getElementById('pwScreen').style.display='block';document.getElementById('adminPanel').style.display='none';document.getElementById('pwErr').style.display='none';document.getElementById('pwInput').value='';openModal('adminModal');}
+function openAdmin(){
+  const pw=document.getElementById('pwScreen');
+  const ap=document.getElementById('adminPanel');
+  const pe=document.getElementById('pwErr');
+  const pi=document.getElementById('pwInput');
+  if(pw)pw.style.display='block';
+  if(ap)ap.style.display='none';
+  if(pe)pe.style.display='none';
+  if(pi)pi.value='';
+  openModal('adminModal');
+}
 async function checkPw(){
   const val=document.getElementById('pwInput').value;
   const enc=new TextEncoder();const data=enc.encode(val);
