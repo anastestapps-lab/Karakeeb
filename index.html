@@ -64,7 +64,7 @@ body{font-family:'Cairo',sans-serif;background:var(--bg);color:var(--text);}
 .add-btn{background:linear-gradient(135deg,var(--rose),var(--rose-dark));border:none;border-radius:50%;width:32px;height:32px;font-size:18px;color:white;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(201,123,139,.4);}
 .add-btn:disabled{background:#DDD;box-shadow:none;cursor:not-allowed;}
 .empty{text-align:center;padding:60px 20px;color:var(--text-light);}
-
+.float-wa{position:fixed;bottom:24px;left:20px;z-index:150;background:linear-gradient(135deg,#25D366,#128C7E);border:none;border-radius:50px;padding:12px 18px;font-family:'Cairo',sans-serif;font-size:14px;font-weight:700;color:white;cursor:pointer;display:flex;align-items:center;gap:8px;box-shadow:0 4px 20px rgba(37,211,102,.45);}
 .overlay{position:fixed;inset:0;background:rgba(61,43,47,.5);z-index:200;display:flex;align-items:flex-end;justify-content:center;opacity:0;pointer-events:none;transition:opacity .3s;}
 .overlay.open{opacity:1;pointer-events:all;}
 .modal{background:white;border-radius:28px 28px 0 0;width:100%;max-width:500px;max-height:92vh;overflow-y:auto;transform:translateY(100%);transition:transform .35s cubic-bezier(.4,0,.2,1);padding:24px 20px;}
@@ -170,29 +170,6 @@ body{font-family:'Cairo',sans-serif;background:var(--bg);color:var(--text);}
 
 .toast{position:fixed;bottom:28px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--text);color:white;padding:11px 22px;border-radius:50px;font-size:13px;font-weight:700;z-index:999;transition:transform .3s;white-space:nowrap;}
 .toast.show{transform:translateX(-50%) translateY(0);}
-
-/* WHATSAPP CHAT BUBBLE */
-.wa-chat-bubble{position:fixed;bottom:24px;right:20px;z-index:150;display:flex;flex-direction:column;align-items:flex-end;gap:8px;opacity:0;pointer-events:none;transition:opacity .5s;}
-.wa-chat-bubble.show{opacity:1;pointer-events:all;}
-.wa-chat-msg{background:white;border-radius:16px 16px 4px 16px;padding:12px 16px;font-size:13px;font-weight:600;color:var(--text);box-shadow:0 4px 16px rgba(0,0,0,.12);max-width:220px;line-height:1.5;animation:popIn .4s ease;}
-.wa-chat-avatar{width:52px;height:52px;background:linear-gradient(135deg,#25D366,#128C7E);border-radius:50%;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 16px rgba(37,211,102,.4);cursor:pointer;animation:pulse 2.5s infinite;}
-@keyframes popIn{0%{transform:scale(.8) translateY(10px);opacity:0}100%{transform:scale(1) translateY(0);opacity:1}}
-@keyframes pulse{0%,100%{box-shadow:0 4px 16px rgba(37,211,102,.4)}50%{box-shadow:0 4px 24px rgba(37,211,102,.7)}}
-
-/* ABOUT MODAL */
-.about-section{background:linear-gradient(135deg,#FAE8EC,#FDF7F8);border-radius:20px;padding:24px;text-align:center;margin-bottom:16px;}
-.about-avatar{width:80px;height:80px;background:linear-gradient(135deg,var(--rose),var(--rose-dark));border-radius:50%;margin:0 auto 16px;display:flex;align-items:center;justify-content:center;font-size:36px;box-shadow:0 4px 16px rgba(201,123,139,.3);}
-.about-name{font-size:20px;font-weight:900;color:var(--text);margin-bottom:6px;}
-.about-desc{font-size:14px;color:var(--text-light);line-height:1.7;margin-bottom:20px;}
-.about-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:20px;}
-.about-stat{background:white;border-radius:14px;padding:12px 8px;text-align:center;box-shadow:0 2px 8px var(--shadow);}
-.about-stat-num{font-size:20px;font-weight:900;color:var(--rose-dark);}
-.about-stat-label{font-size:10px;color:var(--text-light);margin-top:2px;}
-.about-wa-btn{width:100%;background:linear-gradient(135deg,#25D366,#128C7E);border:none;border-radius:14px;padding:14px;font-family:'Cairo',sans-serif;font-size:15px;font-weight:700;color:white;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;box-shadow:0 4px 14px rgba(37,211,102,.3);}
-
-/* SHARE BTN */
-.share-btn{background:none;border:1px solid #F0D8DD;border-radius:50px;padding:8px 14px;font-family:'Cairo',sans-serif;font-size:12px;font-weight:700;color:var(--text-light);cursor:pointer;display:flex;align-items:center;gap:6px;margin-top:12px;width:100%;justify-content:center;}
-.share-btn:hover{background:var(--rose-light);}
 </style>
 
 <!-- Firebase -->
@@ -208,7 +185,6 @@ body{font-family:'Cairo',sans-serif;background:var(--bg);color:var(--text);}
       <div class="logo-text"><h1>كراكيب</h1><p>رفايع البيت والمطبخ</p></div>
     </div>
     <div class="header-btns">
-      <button class="hbtn icon-only" onclick="openAbout()" title="عن المتجر">🌸</button>
       <button class="hbtn" onclick="openCart()">🛒 <span class="cart-count" id="cartCount">0</span></button>
       <button class="hbtn icon-only" onclick="openAdmin()">⚙️</button>
     </div>
@@ -247,34 +223,10 @@ body{font-family:'Cairo',sans-serif;background:var(--bg);color:var(--text);}
   <div class="empty" id="emptyState" style="display:none"><div style="font-size:56px">🔍</div><p>مش لاقية المنتج ده</p></div>
 </div>
 
-<!-- WHATSAPP CHAT BUBBLE -->
-<div class="wa-chat-bubble" id="waChatBubble">
-  <div class="wa-chat-msg" id="waChatMsg">أهلاً! 🌸 محتاجة مساعدة أو عندك سؤال؟</div>
-  <div class="wa-chat-avatar" onclick="openWhatsAppChat()">
-    <svg width="26" height="26" viewBox="0 0 24 24" fill="white"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
-  </div>
-</div>
-
-<!-- ABOUT MODAL -->
-<div class="overlay" id="aboutModal" onclick="overlayClick(event)">
-  <div class="modal">
-    <div class="modal-handle"></div>
-    <button class="mclose" onclick="closeModal('aboutModal')">✕</button>
-    <div class="cf"></div>
-    <div class="about-section">
-      <div class="about-avatar">🌸</div>
-      <div class="about-name">متجر كراكيب</div>
-      <div class="about-desc" id="aboutDesc">رفايع بيت وإكسسوارات مطبخ مختارة بعناية وحب، بجودة عالية وأسعار تريح القلب. كل منتج اتختار عشان يضيف جمال وراحة لبيتك 🏠</div>
-    </div>
-    <div class="about-stats" id="aboutStats"></div>
-    <button class="about-wa-btn" onclick="openWhatsAppContact()">
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="white"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
-      تواصلي معانا على واتساب
-    </button>
-  </div>
-</div>
-
-
+<button class="float-wa" onclick="openWhatsAppContact()">
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="white"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+  تواصلي معانا
+</button>
 
 <!-- PRODUCT MODAL -->
 <div class="overlay" id="productModal" onclick="overlayClick(event)">
@@ -300,10 +252,6 @@ body{font-family:'Cairo',sans-serif;background:var(--bg);color:var(--text);}
       </div>
     </div>
     <div style="text-align:center;margin-top:14px;"><button onclick="openRateModal()" style="background:none;border:none;font-family:'Cairo',sans-serif;font-size:13px;color:var(--text-light);cursor:pointer;text-decoration:underline;">⭐ قيّمي المنتج ده</button></div>
-    <button class="share-btn" onclick="shareProduct()">
-      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
-      شاركي المنتج ده 📤
-    </button>
   </div>
 </div>
 
@@ -490,39 +438,15 @@ document.getElementById('heroTitle').textContent=ph.t;
 document.getElementById('heroSub').textContent=ph.s;
 
 // FIREBASE LOAD
-// تحميل فوري من cache
 const cached=localStorage.getItem('krkb_cache');
-if(cached){
-  try{
-    products=JSON.parse(cached);
-    renderCats();
-    renderProducts();
-    updateCatSelect();
-  }catch(e){}
-}
-
-// مستمع Firebase في الخلفية
-// fallback لو Firebase اتأخر
-const fbTimeout = setTimeout(()=>{
-  if(!window._fbLoaded){
-    renderCats();
-    renderProducts();
-    updateCatSelect();
-  }
-}, 5000);
+if(cached){try{products=JSON.parse(cached);renderCats();renderProducts();}catch(e){}}
 
 db.collection('products').onSnapshot(snap=>{
-  window._fbLoaded = true;
-  clearTimeout(fbTimeout);
   products=snap.docs.map(d=>({firestoreId:d.id,...d.data()}));
   try{localStorage.setItem('krkb_cache',JSON.stringify(products));}catch(e){}
   renderCats();renderProducts();updateCatSelect();
   if(!window._promoShown){window._promoShown=true;showPromoIfActive();}
-},err=>{
-  clearTimeout(fbTimeout);
-  console.log('Firebase error:',err);
-  renderCats();renderProducts();
-});
+},err=>{console.log('Firebase error:',err);});
 
 // HELPERS
 function avgRating(p){if(!p.ratings||!p.ratings.length)return 0;return p.ratings.reduce((a,b)=>a+b,0)/p.ratings.length;}
@@ -636,17 +560,7 @@ function pickStar(n){pickedStar=n;document.querySelectorAll('.star-pick').forEac
 async function submitRating(){if(!pickedStar){toast('⭐ اختاري عدد النجوم الأول!');return;}const p=products.find(x=>x.firestoreId===curProduct.firestoreId);if(!p)return;const ratings=[...(p.ratings||[]),pickedStar];try{await db.collection('products').doc(p.firestoreId).update({ratings});closeModal('rateModal');toast('🌟 شكراً على تقييمك!');}catch(e){toast('❌ في مشكلة');}}
 
 // ADMIN
-function openAdmin(){
-  const pw=document.getElementById('pwScreen');
-  const ap=document.getElementById('adminPanel');
-  const pe=document.getElementById('pwErr');
-  const pi=document.getElementById('pwInput');
-  if(pw)pw.style.display='block';
-  if(ap)ap.style.display='none';
-  if(pe)pe.style.display='none';
-  if(pi)pi.value='';
-  openModal('adminModal');
-}
+function openAdmin(){document.getElementById('pwScreen').style.display='block';document.getElementById('adminPanel').style.display='none';document.getElementById('pwErr').style.display='none';document.getElementById('pwInput').value='';openModal('adminModal');}
 async function checkPw(){
   const val=document.getElementById('pwInput').value;
   const enc=new TextEncoder();const data=enc.encode(val);
@@ -921,65 +835,6 @@ function addCat(){
 function renderCats(){
   const cats=['الكل',...getCatsOrdered()];
   document.getElementById('catsBar').innerHTML=cats.map(c=>`<button class="cat-btn ${c===activeCat?'active':''}" onclick="setCat('${c}',this)">${c}</button>`).join('');
-}
-
-// WHATSAPP CHAT BUBBLE
-let chatShown = false;
-window.addEventListener('scroll', function(){
-  if(chatShown) return;
-  if(window.scrollY > 200){
-    chatShown = true;
-    setTimeout(()=>{
-      document.getElementById('waChatBubble').classList.add('show');
-      // إخفاء الرسالة بعد 6 ثواني وتفضل الأيقونة
-      setTimeout(()=>{
-        const msg = document.getElementById('waChatMsg');
-        if(msg) msg.style.opacity='0';
-        setTimeout(()=>{ if(msg) msg.style.display='none'; }, 400);
-      }, 6000);
-    }, 1500);
-  }
-});
-
-function openWhatsAppChat(){
-  const msg = `أهلاً! 🌸 داخل على متجر ${STORE_NAME} وعندي استفسار...`;
-  window.open(`https://wa.me/${WA_NUMBER}?text=${encodeURIComponent(msg)}`,'_blank');
-}
-
-// ABOUT
-function openAbout(){
-  const totalProducts = products.length;
-  const cats = new Set(products.map(p=>p.category).filter(Boolean)).size;
-  const avgPrice = products.length ? Math.round(products.reduce((s,p)=>s+p.price,0)/products.length) : 0;
-  document.getElementById('aboutStats').innerHTML = `
-    <div class="about-stat"><div class="about-stat-num">${totalProducts}+</div><div class="about-stat-label">منتج متاح</div></div>
-    <div class="about-stat"><div class="about-stat-num">${cats}</div><div class="about-stat-label">فئة مختلفة</div></div>
-    <div class="about-stat"><div class="about-stat-num">${avgPrice} ج</div><div class="about-stat-label">متوسط السعر</div></div>`;
-  openModal('aboutModal');
-}
-
-// SHARE PRODUCT
-function shareProduct(){
-  if(!curProduct) return;
-  const url = window.location.href.split('?')[0];
-  const msg = `🌸 شوفي المنتج ده من متجر ${STORE_NAME}!
-
-` +
-    `📦 ${curProduct.name}
-` +
-    `💰 السعر: ${curProduct.price} جنيه
-` +
-    `${curProduct.desc ? '📝 '+curProduct.desc+'
-' : ''}` +
-    `
-🔗 ${url}
-
-للطلب والاستفسار على واتساب 👆`;
-  if(navigator.share){
-    navigator.share({ title: curProduct.name, text: msg }).catch(()=>{});
-  } else {
-    window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`,'_blank');
-  }
 }
 
 // MODALS
