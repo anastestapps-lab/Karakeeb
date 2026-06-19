@@ -438,12 +438,8 @@ document.getElementById('heroTitle').textContent=ph.t;
 document.getElementById('heroSub').textContent=ph.s;
 
 // FIREBASE LOAD
-const cached=localStorage.getItem('krkb_cache');
-if(cached){try{products=JSON.parse(cached);renderCats();renderProducts();}catch(e){}}
-
 db.collection('products').onSnapshot(snap=>{
   products=snap.docs.map(d=>({firestoreId:d.id,...d.data()}));
-  try{localStorage.setItem('krkb_cache',JSON.stringify(products));}catch(e){}
   renderCats();renderProducts();updateCatSelect();
   if(!window._promoShown){window._promoShown=true;showPromoIfActive();}
 },err=>{console.log('Firebase error:',err);});
