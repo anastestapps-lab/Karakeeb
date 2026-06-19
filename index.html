@@ -168,6 +168,19 @@ body{font-family:'Cairo',sans-serif;background:var(--bg);color:var(--text);}
 .bundle-new-price{font-size:20px;font-weight:900;color:var(--gold);}
 .bundle-buy-btn{width:100%;background:linear-gradient(135deg,var(--gold),#B8960C);border:none;border-radius:12px;padding:12px;font-family:'Cairo',sans-serif;font-size:14px;font-weight:700;color:white;cursor:pointer;margin-top:10px;}
 
+/* LOADING BAR */
+.loading-section{text-align:center;padding:32px 16px;}
+.loading-msg{font-size:15px;font-weight:700;color:var(--rose-dark);margin-bottom:14px;min-height:24px;transition:opacity .3s;}
+.loading-bar-wrap{background:#F5E8EA;border-radius:50px;height:6px;overflow:hidden;max-width:260px;margin:0 auto;}
+.loading-bar-fill{height:100%;background:linear-gradient(90deg,var(--rose),var(--rose-dark));border-radius:50px;width:0%;transition:width .4s ease;}
+
+/* LOADING BAR */
+.loading-wrap{text-align:center;padding:30px 20px 20px;}
+.loading-msg{font-size:14px;font-weight:700;color:var(--rose-dark);margin-bottom:14px;min-height:22px;transition:opacity .3s;}
+.loading-bar-bg{background:#F0D8DD;border-radius:50px;height:8px;overflow:hidden;margin:0 auto;max-width:260px;}
+.loading-bar-fill{height:100%;background:linear-gradient(90deg,var(--rose),var(--rose-dark),var(--gold));border-radius:50px;width:0%;transition:width .4s ease;animation:loadPulse 1.8s infinite;}
+@keyframes loadPulse{0%{width:15%}50%{width:75%}100%{width:15%}}
+
 .toast{position:fixed;bottom:28px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--text);color:white;padding:11px 22px;border-radius:50px;font-size:13px;font-weight:700;z-index:999;transition:transform .3s;white-space:nowrap;}
 .toast.show{transform:translateX(-50%) translateY(0);}
 </style>
@@ -214,12 +227,13 @@ body{font-family:'Cairo',sans-serif;background:var(--bg);color:var(--text);}
 
 <div class="products-wrap">
   <div class="section-label">المنتجات المتاحة</div>
-  <div class="grid" id="productsGrid">
-    <div class="skel-card"><div class="skel-img skeleton"></div><div class="skel-line skeleton"></div><div class="skel-line short skeleton"></div></div>
-    <div class="skel-card"><div class="skel-img skeleton"></div><div class="skel-line skeleton"></div><div class="skel-line short skeleton"></div></div>
-    <div class="skel-card"><div class="skel-img skeleton"></div><div class="skel-line skeleton"></div><div class="skel-line short skeleton"></div></div>
-    <div class="skel-card"><div class="skel-img skeleton"></div><div class="skel-line skeleton"></div><div class="skel-line short skeleton"></div></div>
+  <div id="loadingSection" class="loading-section">
+    <div class="loading-msg" id="loadingMsg">جاري تحميل المنتجات...</div>
+    <div class="loading-bar-wrap">
+      <div class="loading-bar-fill" id="loadingBar"></div>
+    </div>
   </div>
+  <div class="grid" id="productsGrid" style="display:none;"></div>
   <div class="empty" id="emptyState" style="display:none"><div style="font-size:56px">🔍</div><p>مش لاقية المنتج ده</p></div>
 </div>
 
@@ -426,6 +440,54 @@ let products=[], cart=[], curProduct=null, curQty=1, editId=null, pendingImgs=[]
 let activeCat='الكل', priceMin=0, priceMax=99999, curAdminTab='add';
 
 // HERO
+// LOADING MESSAGES
+const loadingMsgs = [
+  "🌸 بنجيبلك أحسن المنتجات...",
+  "✨ بنرتبلك التشكيلة بعناية...",
+  "🏠 لحظة وبيتك هيبقى أجمل!",
+  "💝 بنختارلك الأحسن بحب...",
+  "🔥 المنتجات جاية في ثانية!",
+  "🛒 استني شوية — يستاهل!",
+  "🌟 بنحضرلك أجمل التشكيلة...",
+  "💛 خليكي معانا — الأجمل جاي!",
+];
+let _loadingInterval = null;
+let _loadingProgress = 0;
+
+function startLoading(){
+  const msg = document.getElementById('loadingMsg');
+  const bar = document.getElementById('loadingBar');
+  const sec = document.getElementById('loadingSection');
+  const grid = document.getElementById('productsGrid');
+  if(!sec) return;
+  sec.style.display = 'block';
+  grid.style.display = 'none';
+  _loadingProgress = 0;
+  if(msg) msg.textContent = loadingMsgs[Math.floor(Math.random()*loadingMsgs.length)];
+  _loadingInterval = setInterval(()=>{
+    _loadingProgress = Math.min(_loadingProgress + Math.random()*8, 85);
+    if(bar) bar.style.width = _loadingProgress + '%';
+    if(msg && Math.random() > 0.6){
+      msg.style.opacity = '0';
+      setTimeout(()=>{
+        if(msg){ msg.textContent = loadingMsgs[Math.floor(Math.random()*loadingMsgs.length)]; msg.style.opacity = '1'; }
+      }, 300);
+    }
+  }, 600);
+}
+
+function stopLoading(){
+  const bar = document.getElementById('loadingBar');
+  const sec = document.getElementById('loadingSection');
+  const grid = document.getElementById('productsGrid');
+  clearInterval(_loadingInterval);
+  if(bar){ bar.style.transition = 'width .3s ease'; bar.style.width = '100%'; }
+  setTimeout(()=>{
+    if(sec) sec.style.display = 'none';
+    if(grid) grid.style.display = '';
+  }, 350);
+}
+
 const phrases=[
   {t:"🌸 كراكيب — بيتك يستاهل الأحسن!",   s:"منتجات مختارة بعناية بأسعار تريح قلبك"},
   {t:"✨ جودة حقيقية بسعر يسعدك!",          s:"كل اللي بيتك محتاجه في مكان واحد"},
@@ -437,12 +499,44 @@ const ph=phrases[Math.floor(Math.random()*phrases.length)];
 document.getElementById('heroTitle').textContent=ph.t;
 document.getElementById('heroSub').textContent=ph.s;
 
+// LOADING MESSAGES
+const loadingMsgs=[
+  "جاري تجهيز أجمل المنتجات ليكِ... 🌸",
+  "لحظة صغيرة والمتجر هيبقى جاهز! ✨",
+  "بنجيبلك أحسن العروض دلوقتي... 🔥",
+  "شوية صبر والمفاجأة قريبة! 💝",
+  "بنرتبلك كل حاجة بعناية وحب... 🏠",
+  "استني بس، المنتجات في الطريق! 🛒",
+  "قريباً هتلاقي اللي بيتك محتاجه! 🌟",
+];
+let _msgIdx=Math.floor(Math.random()*loadingMsgs.length);
+const _msgEl=document.getElementById('loadingMsg');
+if(_msgEl) _msgEl.textContent=loadingMsgs[_msgIdx];
+const _msgInterval=setInterval(()=>{
+  _msgIdx=(_msgIdx+1)%loadingMsgs.length;
+  const el=document.getElementById('loadingMsg');
+  if(el){el.style.opacity='0';setTimeout(()=>{el.textContent=loadingMsgs[_msgIdx];el.style.opacity='1';},300);}
+},2500);
+
+function hideLoadingBar(){
+  clearInterval(_msgInterval);
+  const lw=document.getElementById('loadingWrap');
+  const pg=document.getElementById('productsGrid');
+  if(lw){lw.style.opacity='0';setTimeout(()=>{lw.style.display='none';},400);}
+  if(pg)pg.style.display='';
+}
+
 // FIREBASE LOAD
 db.collection('products').onSnapshot(snap=>{
   products=snap.docs.map(d=>({firestoreId:d.id,...d.data()}));
+  hideLoadingBar();
   renderCats();renderProducts();updateCatSelect();
   if(!window._promoShown){window._promoShown=true;showPromoIfActive();}
-},err=>{console.log('Firebase error:',err);});
+},err=>{
+  console.log('Firebase error:',err);
+  hideLoadingBar();
+  renderCats();renderProducts();
+});
 
 // HELPERS
 function avgRating(p){if(!p.ratings||!p.ratings.length)return 0;return p.ratings.reduce((a,b)=>a+b,0)/p.ratings.length;}
