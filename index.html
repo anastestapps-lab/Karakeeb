@@ -46,6 +46,11 @@ body{font-family:'Cairo',sans-serif;background:var(--bg);color:var(--text);}
 .skel-img{width:100%;aspect-ratio:1;}
 .skel-line{height:13px;margin:10px 12px 6px;}
 .skel-line.short{width:60%;height:11px;margin:0 12px 12px;}
+/* LOADING BAR */
+.loading-wrap{text-align:center;padding:30px 20px 20px;}
+.loading-msg{font-size:14px;font-weight:700;color:var(--rose-dark);margin-bottom:14px;min-height:22px;transition:opacity .3s;}
+.loading-bar-bg{background:#F0D8DD;border-radius:50px;height:8px;overflow:hidden;margin:0 auto;max-width:260px;}
+.loading-bar-fill{height:100%;background:linear-gradient(90deg,var(--rose),var(--rose-dark),var(--gold));border-radius:50px;width:0%;transition:width .6s ease;}
 .card{background:white;border-radius:16px;overflow:hidden;box-shadow:0 2px 12px var(--shadow);border:1px solid #F5E8EA;cursor:pointer;transition:transform .2s;}
 .card:hover{transform:translateY(-3px);}
 .card-img{width:100%;aspect-ratio:1;background:var(--rose-light);display:flex;align-items:center;justify-content:center;font-size:48px;position:relative;overflow:hidden;}
@@ -214,12 +219,11 @@ body{font-family:'Cairo',sans-serif;background:var(--bg);color:var(--text);}
 
 <div class="products-wrap">
   <div class="section-label">المنتجات المتاحة</div>
-  <div class="grid" id="productsGrid">
-    <div class="skel-card"><div class="skel-img skeleton"></div><div class="skel-line skeleton"></div><div class="skel-line short skeleton"></div></div>
-    <div class="skel-card"><div class="skel-img skeleton"></div><div class="skel-line skeleton"></div><div class="skel-line short skeleton"></div></div>
-    <div class="skel-card"><div class="skel-img skeleton"></div><div class="skel-line skeleton"></div><div class="skel-line short skeleton"></div></div>
-    <div class="skel-card"><div class="skel-img skeleton"></div><div class="skel-line skeleton"></div><div class="skel-line short skeleton"></div></div>
+  <div id="loadingWrap" class="loading-wrap">
+    <div class="loading-msg" id="loadingMsg">جاري تجهيز أجمل المنتجات ليكِ... 🌸</div>
+    <div class="loading-bar-bg"><div class="loading-bar-fill" id="loadingBar"></div></div>
   </div>
+  <div class="grid" id="productsGrid" style="display:none;"></div>
   <div class="empty" id="emptyState" style="display:none"><div style="font-size:56px">🔍</div><p>مش لاقية المنتج ده</p></div>
 </div>
 
@@ -438,11 +442,47 @@ document.getElementById('heroTitle').textContent=ph.t;
 document.getElementById('heroSub').textContent=ph.s;
 
 // FIREBASE LOAD
+// LOADING BAR LOGIC
+const loadingMsgs=[
+  "جاري تجهيز أجمل المنتجات ليكِ... 🌸",
+  "لحظة صغيرة والمتجر هيبقى جاهز! ✨",
+  "بنجيبلك أحسن العروض دلوقتي... 🔥",
+  "شوية صبر والمفاجأة قريبة! 💝",
+  "بنرتبلك كل حاجة بعناية وحب... 🏠",
+  "استني بس، المنتجات في الطريق! 🛒",
+  "قريباً هتلاقي اللي بيتك محتاجه! 🌟",
+];
+let _msgIdx=Math.floor(Math.random()*loadingMsgs.length);
+const _msgEl=document.getElementById('loadingMsg');
+if(_msgEl) _msgEl.textContent=loadingMsgs[_msgIdx];
+const _msgInterval=setInterval(()=>{
+  _msgIdx=(_msgIdx+1)%loadingMsgs.length;
+  const el=document.getElementById('loadingMsg');
+  if(el){el.style.opacity='0';setTimeout(()=>{el.textContent=loadingMsgs[_msgIdx];el.style.opacity='1';},300);}
+},2500);
+const _bar=document.getElementById('loadingBar');
+let _barPct=0;
+const _barInterval=setInterval(()=>{
+  if(_barPct<90){_barPct+=_barPct<50?8:_barPct<75?4:1;if(_barPct>90)_barPct=90;if(_bar)_bar.style.width=_barPct+'%';}
+},300);
+function hideLoadingBar(){
+  clearInterval(_msgInterval);clearInterval(_barInterval);
+  if(_bar)_bar.style.width='100%';
+  const lw=document.getElementById('loadingWrap');
+  const pg=document.getElementById('productsGrid');
+  setTimeout(()=>{
+    if(lw){lw.style.opacity='0';setTimeout(()=>{lw.style.display='none';},400);}
+    if(pg)pg.style.display='';
+  },500);
+}
+
 db.collection('products').onSnapshot(snap=>{
+  window._fbLoaded=true;
   products=snap.docs.map(d=>({firestoreId:d.id,...d.data()}));
+  hideLoadingBar();
   renderCats();renderProducts();updateCatSelect();
   if(!window._promoShown){window._promoShown=true;showPromoIfActive();}
-},err=>{console.log('Firebase error:',err);});
+},err=>{console.log('Firebase error:',err);hideLoadingBar();renderCats();renderProducts();});
 
 // HELPERS
 function avgRating(p){if(!p.ratings||!p.ratings.length)return 0;return p.ratings.reduce((a,b)=>a+b,0)/p.ratings.length;}
@@ -460,6 +500,8 @@ function setPF(min,max,btn){priceMin=min;priceMax=max;document.querySelectorAll(
 
 // PRODUCTS
 function renderProducts(){
+  // لو Firebase لسه مش جاب البيانات، متعملش حاجة
+  if(!window._fbLoaded && !products.length) return;
   const q=document.getElementById('searchInput').value.toLowerCase().trim();
   let list=products.filter(p=>(activeCat==='الكل'||p.category===activeCat)&&p.price>=priceMin&&p.price<=priceMax&&(!q||p.name.toLowerCase().includes(q)||((p.category||'').toLowerCase()).includes(q)));
   const grid=document.getElementById('productsGrid');
