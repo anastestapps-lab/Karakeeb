@@ -178,8 +178,7 @@ body{font-family:'Cairo',sans-serif;background:var(--bg);color:var(--text);}
 .loading-wrap{text-align:center;padding:30px 20px 20px;}
 .loading-msg{font-size:14px;font-weight:700;color:var(--rose-dark);margin-bottom:14px;min-height:22px;transition:opacity .3s;}
 .loading-bar-bg{background:#F0D8DD;border-radius:50px;height:8px;overflow:hidden;margin:0 auto;max-width:260px;}
-.loading-bar-fill{height:100%;background:linear-gradient(90deg,var(--rose),var(--rose-dark),var(--gold));border-radius:50px;width:0%;transition:width .4s ease;animation:loadPulse 1.8s infinite;}
-@keyframes loadPulse{0%{width:15%}50%{width:75%}100%{width:15%}}
+.loading-bar-fill{height:100%;background:linear-gradient(90deg,var(--rose),var(--rose-dark),var(--gold));border-radius:50px;width:0%;transition:width .6s ease;}
 
 .toast{position:fixed;bottom:28px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--text);color:white;padding:11px 22px;border-radius:50px;font-size:13px;font-weight:700;z-index:999;transition:transform .3s;white-space:nowrap;}
 .toast.show{transform:translateX(-50%) translateY(0);}
@@ -499,7 +498,7 @@ const ph=phrases[Math.floor(Math.random()*phrases.length)];
 document.getElementById('heroTitle').textContent=ph.t;
 document.getElementById('heroSub').textContent=ph.s;
 
-// LOADING MESSAGES
+// LOADING BAR LOGIC
 const loadingMsgs=[
   "جاري تجهيز أجمل المنتجات ليكِ... 🌸",
   "لحظة صغيرة والمتجر هيبقى جاهز! ✨",
@@ -512,18 +511,37 @@ const loadingMsgs=[
 let _msgIdx=Math.floor(Math.random()*loadingMsgs.length);
 const _msgEl=document.getElementById('loadingMsg');
 if(_msgEl) _msgEl.textContent=loadingMsgs[_msgIdx];
+
+// تغيير الجملة كل 2.5 ثانية
 const _msgInterval=setInterval(()=>{
   _msgIdx=(_msgIdx+1)%loadingMsgs.length;
   const el=document.getElementById('loadingMsg');
   if(el){el.style.opacity='0';setTimeout(()=>{el.textContent=loadingMsgs[_msgIdx];el.style.opacity='1';},300);}
 },2500);
 
+// البار يبدأ من 0 ويوصل 90% بسرعة ويستنى Firebase
+let _barProgress=0;
+const _bar=document.getElementById('loadingBar');
+
+// وصول سريع لـ 30% في أول ثانية
+setTimeout(()=>{ if(_bar&&_barProgress<30){_barProgress=30;_bar.style.width='30%';} },400);
+// وصول لـ 60% في تانية ثانية
+setTimeout(()=>{ if(_bar&&_barProgress<60){_barProgress=60;_bar.style.width='60%';} },1200);
+// وصول لـ 85% وتوقف لحد ما Firebase يرد
+setTimeout(()=>{ if(_bar&&_barProgress<85){_barProgress=85;_bar.style.width='85%';} },2200);
+
 function hideLoadingBar(){
   clearInterval(_msgInterval);
-  const lw=document.getElementById('loadingWrap');
-  const pg=document.getElementById('productsGrid');
-  if(lw){lw.style.opacity='0';setTimeout(()=>{lw.style.display='none';},400);}
-  if(pg)pg.style.display='';
+  // إكمال لـ 100% بعدين الاختفاء
+  if(_bar){_bar.style.width='100%';}
+  const el=document.getElementById('loadingMsg');
+  if(el){el.style.opacity='0';setTimeout(()=>{el.textContent='تم التحميل! 🎉';el.style.opacity='1';},300);}
+  setTimeout(()=>{
+    const lw=document.getElementById('loadingWrap');
+    const pg=document.getElementById('productsGrid');
+    if(lw){lw.style.opacity='0';lw.style.transition='opacity .4s';setTimeout(()=>{lw.style.display='none';},400);}
+    if(pg)pg.style.display='';
+  },600);
 }
 
 // FIREBASE LOAD
